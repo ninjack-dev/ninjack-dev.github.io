@@ -1,16 +1,20 @@
 import { defineConfig } from "astro/config";
-import rehypeMathjax from "https://esm.sh/rehype-mathjax@7";
-import remarkMath from "https://esm.sh/remark-math@6";
-import remarkToc from "https://esm.sh/remark-math@9";
+import rehypeMathjax from "rehype-mathjax";
+import remarkMath from "remark-math";
+import remarkToc from "remark-toc";
+import { remarkObsidian } from "./src/lib/obsidian-markdown/remark/index.ts";
+import { obsidianHandlers } from "./src/lib/obsidian-markdown/rehype/index.ts";
 
 export default defineConfig({
   markdown: {
     remarkPlugins: [
       remarkMath,
       remarkToc,
+      remarkObsidian,
     ],
+    remarkRehype: { handlers: obsidianHandlers },
     rehypePlugins: [
-      rehypeMathjax(),
+      rehypeMathjax,
     ],
   },
 });

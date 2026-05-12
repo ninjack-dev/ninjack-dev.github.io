@@ -10,8 +10,12 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",
+    "@astrojs/rss": "^4.0.18",
     "@astrojs/ts-plugin": "^1.10.7",
     "astro": "^6.3.1",
+    "rehype-mathjax": "^7.1.0",
+    "remark-math": "^6.0.0",
+    "remark-toc": "^9.0.0",
     "typescript": "^6.0.3"
   }
 }
