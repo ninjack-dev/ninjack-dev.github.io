@@ -1,0 +1,15 @@
+:root {
+  --background: #202229;
+  --text: #dcdcdc;
+  --accent: #c0ff01;
+
+  background-color: var(--background);
+  color: var(--text);
+}
+
+blockquote {
+	border-left: 4px solid var(--accent);
+	padding: 0 0 0 20px;
+	margin: 0;
+	font-size: 1.333em;
+}

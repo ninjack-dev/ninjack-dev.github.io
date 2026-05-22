@@ -1,0 +1,92 @@
+---
+import '../styles/global.css'
+import ProfilePic from '../components/AvatarProfilePic.astro';
+
+// TODO: 
+// - Replace these with the hrefs to their content pages
+// - Add scaffold for submenu entries for Writings categories/subcategories/series
+const menuItems = ["Writings", "Projects", "About"];
+---
+<style>
+  :root {
+    --panel-gap: 4rem;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .home-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: var(--panel-gap);
+    width: 100%;
+  }
+
+  .home-panel-placeholder {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    align-items: center;
+  }
+
+  .main-menu {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    justify-self: end;
+
+    .main-menu-button {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      white-space: nowrap;
+      font-size: calc(100% + 2em);
+
+      .main-menu-button-index {
+        font-weight: 100;
+        padding-right: 0.3em;
+      }
+
+      &:hover {
+        .main-menu-button-label {
+          text-decoration: underline var(--accent);
+          text-decoration-thickness: 1.5px;
+          text-underline-offset: 5px;
+        }
+      }
+    }
+  }
+
+</style>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Astro</title>
+  </head>
+  <body>
+    <div class="home-panels">
+      <div class="main-menu">
+        {menuItems.map((l, i) => {
+          return <div class="main-menu-button">
+            <span class="main-menu-button-index">[{i + 1}]</span>
+            <span class="main-menu-button-label">{l}</span>
+          </div>
+        })}
+      </div>
+      <div class="home-panel-placeholder">
+        <ProfilePic />
+        <blockquote style="margin-top: 1em;">Jack of all trades, master of some</blockquote>
+        <p>Software engineer based out of Portland, OR.<br>Lover of all things dev tooling.</p>
+      </div>
+    </div>
+  </body>
+</html>
