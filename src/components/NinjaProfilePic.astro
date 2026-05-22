@@ -1,0 +1,150 @@
+---
+import { Image } from 'astro:assets';
+import profileNinja from '../assets/NewProfilePicture1.1_1024p.png';
+import profileReal from '../assets/profile.png';
+---
+
+<style is:global>
+  @property --mask-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+
+  @property --line-pos {
+    syntax: '<percentage>';
+    inherits: false;
+    initial-value: 0%;
+  }
+
+  :root {
+    --profile-ease-curve: cubic-bezier(0.7, 0, 0.84, 0);
+    --profile-enter-duration: 350ms;
+    --profile-leave-duration: 350ms;
+  }
+</style>
+
+<style>
+  .profile-container {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: crosshair;
+    flex-shrink: 0;
+
+    img {
+      display: block;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .profile-ninja {
+    z-index: 1;
+
+    &.entering, &.leaving {
+      mask-image: linear-gradient(
+        calc(var(--mask-angle) - 90deg),
+        transparent 0% var(--line-pos),
+        black var(--line-pos) 100%
+      );
+    }
+
+    &.entering {
+      transition: --line-pos var(--profile-enter-duration) var(--profile-ease-curve);
+    }
+
+    &.leaving {
+      transition: --line-pos var(--profile-leave-duration) var(--profile-ease-curve);
+    }
+
+    &.tracking {
+      mask-image: conic-gradient(
+        from var(--mask-angle) at 50% 50%,
+        transparent 0deg 180deg,
+        black 180deg 360deg
+      );
+    }
+  }
+</style>
+
+<div class="profile-container">
+  <Image class="profile-real" src={profileReal} alt="" loading="eager" />
+  <Image class="profile-ninja" src={profileNinja} alt="" loading="eager" />
+</div>
+
+<script>
+  // Keep in sync with --profile-enter-duration.
+  const ENTER_MS = 350;
+
+  document.querySelectorAll<HTMLElement>('.profile-container').forEach((container) => {
+    const ninja = container.querySelector<HTMLElement>('.profile-ninja')!;
+    let enterToken = 0;
+
+    function getAngle(clientX: number, clientY: number): number {
+      const r = container.getBoundingClientRect();
+      return Math.atan2(
+        clientY - (r.top + r.height / 2),
+        clientX - (r.left + r.width / 2),
+      ) * (180 / Math.PI);
+    }
+
+    function enter(clientX: number, clientY: number): void {
+      const token = ++enterToken;
+      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+      ninja.classList.remove('leaving', 'tracking');
+      void ninja.offsetWidth;
+      ninja.classList.add('entering');
+      ninja.style.setProperty('--line-pos', '50%');
+
+      setTimeout(() => {
+        if (enterToken !== token) return;
+        ninja.classList.remove('entering');
+        ninja.classList.add('tracking');
+      }, ENTER_MS);
+    }
+
+    function move(clientX: number, clientY: number): void {
+      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+    }
+
+    function leave(clientX: number, clientY: number): void {
+      ++enterToken;
+      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+      ninja.classList.remove('entering', 'tracking');
+      void ninja.offsetWidth;
+      ninja.classList.add('leaving');
+      ninja.style.setProperty('--line-pos', '0%');
+    }
+
+    container.addEventListener('mouseenter', (e: MouseEvent) => enter(e.clientX, e.clientY));
+    container.addEventListener('mousemove',  (e: MouseEvent) => move(e.clientX, e.clientY));
+    container.addEventListener('mouseleave', (e: MouseEvent) => leave(e.clientX, e.clientY));
+
+    container.addEventListener('touchstart', (e: TouchEvent) => {
+      const t = e.touches[0];
+      enter(t.clientX, t.clientY);
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e: TouchEvent) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      move(t.clientX, t.clientY);
+    }, { passive: false });
+
+    container.addEventListener('touchend', (e: TouchEvent) => {
+      const t = e.changedTouches[0];
+      leave(t.clientX, t.clientY);
+    });
+
+    container.addEventListener('touchcancel', (e: TouchEvent) => {
+      const t = e.changedTouches[0];
+      leave(t.clientX, t.clientY);
+    });
+  });
+</script>
