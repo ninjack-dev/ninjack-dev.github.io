@@ -110,6 +110,7 @@ import profileReal from '../assets/profile.png';
     let animState: AnimState = 'idle';
     let isLocked = false;
     let pendingCommit = false;
+    let isHovering = false;
 
     function getAngle(clientX: number, clientY: number): number {
       const r = container.getBoundingClientRect();
@@ -122,7 +123,7 @@ import profileReal from '../assets/profile.png';
     function commit(): void {
       const token = ++enterToken;
       animState = 'committing';
-      ninja.classList.remove('entering', 'tracking');
+      ninja.classList.remove('entering', 'tracking', 'committed');
       void ninja.offsetWidth;
       ninja.classList.add('committing');
       ninja.style.setProperty('--line-pos', isLocked ? '0%' : '100%');
@@ -130,9 +131,9 @@ import profileReal from '../assets/profile.png';
       setTimeout(() => {
         if (enterToken !== token) return;
         isLocked = !isLocked;
-        animState = isLocked ? 'locked' : 'idle';
         ninja.classList.remove('committing');
-        if (isLocked) ninja.classList.add('committed');
+        ninja.classList.add('committed');
+        animState = isHovering ? 'tracking' : (isLocked ? 'locked' : 'idle');
       }, LOCK_MS);
     }
 
@@ -174,9 +175,9 @@ import profileReal from '../assets/profile.png';
       ninja.style.setProperty('--line-pos', isLocked ? '100%' : '0%');
     }
 
-    container.addEventListener('mouseenter', (e: MouseEvent) => enter(e.clientX, e.clientY));
+    container.addEventListener('mouseenter', (e: MouseEvent) => { isHovering = true;  enter(e.clientX, e.clientY); });
     container.addEventListener('mousemove',  (e: MouseEvent) => move(e.clientX, e.clientY));
-    container.addEventListener('mouseleave', (e: MouseEvent) => leave(e.clientX, e.clientY));
+    container.addEventListener('mouseleave', (e: MouseEvent) => { isHovering = false; leave(e.clientX, e.clientY); });
 
     container.addEventListener('click', () => {
       if (animState === 'entering') pendingCommit = true;
@@ -184,6 +185,7 @@ import profileReal from '../assets/profile.png';
     });
 
     container.addEventListener('touchstart', (e: TouchEvent) => {
+      isHovering = true;
       const t = e.touches[0];
       enter(t.clientX, t.clientY);
     }, { passive: true });
@@ -195,6 +197,7 @@ import profileReal from '../assets/profile.png';
     }, { passive: false });
 
     container.addEventListener('touchend', (e: TouchEvent) => {
+      isHovering = false;
       const t = e.changedTouches[0];
       if (animState === 'entering') {
         pendingCommit = true;
@@ -204,6 +207,7 @@ import profileReal from '../assets/profile.png';
     });
 
     container.addEventListener('touchcancel', (e: TouchEvent) => {
+      isHovering = false;
       const t = e.changedTouches[0];
       leave(t.clientX, t.clientY);
     });
