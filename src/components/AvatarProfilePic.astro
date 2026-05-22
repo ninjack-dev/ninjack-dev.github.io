@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import profileNinja from '../assets/NewProfilePicture1.1_1024p.png';
+import profileAvatar from '../assets/NewProfilePicture1.1_1024p.png';
 import profileReal from '../assets/profile.png';
 ---
 
@@ -29,8 +29,8 @@ import profileReal from '../assets/profile.png';
 <style>
   .profile-container {
     position: relative;
-    width: 4rem;
-    height: 4rem;
+    width: 15rem;
+    height: 15rem;
     border-radius: 50%;
     overflow: hidden;
     cursor: crosshair;
@@ -46,7 +46,7 @@ import profileReal from '../assets/profile.png';
     }
   }
 
-  .profile-ninja {
+  .profile-avatar {
     z-index: 1;
 
     &.entering, &.leaving {
@@ -94,7 +94,7 @@ import profileReal from '../assets/profile.png';
 
 <div class="profile-container">
   <Image class="profile-real" src={profileReal} alt="" loading="eager" />
-  <Image class="profile-ninja" src={profileNinja} alt="" loading="eager" />
+  <Image class="profile-avatar" src={profileAvatar} alt="" loading="eager" />
 </div>
 
 <script>
@@ -104,7 +104,7 @@ import profileReal from '../assets/profile.png';
   const LOCK_MS = 350;
 
   document.querySelectorAll<HTMLElement>('.profile-container').forEach((container) => {
-    const ninja = container.querySelector<HTMLElement>('.profile-ninja')!;
+    const avatar = container.querySelector<HTMLElement>('.profile-avatar')!;
     let enterToken = 0;
     type AnimState = 'idle' | 'entering' | 'tracking' | 'committing' | 'locked';
     let animState: AnimState = 'idle';
@@ -123,16 +123,16 @@ import profileReal from '../assets/profile.png';
     function commit(): void {
       const token = ++enterToken;
       animState = 'committing';
-      ninja.classList.remove('entering', 'tracking', 'committed');
-      void ninja.offsetWidth;
-      ninja.classList.add('committing');
-      ninja.style.setProperty('--line-pos', isLocked ? '0%' : '100%');
+      avatar.classList.remove('entering', 'tracking', 'committed');
+      void avatar.offsetWidth;
+      avatar.classList.add('committing');
+      avatar.style.setProperty('--line-pos', isLocked ? '0%' : '100%');
 
       setTimeout(() => {
         if (enterToken !== token) return;
         isLocked = !isLocked;
-        ninja.classList.remove('committing');
-        ninja.classList.add('committed');
+        avatar.classList.remove('committing');
+        avatar.classList.add('committed');
         animState = isHovering ? 'tracking' : (isLocked ? 'locked' : 'idle');
       }, LOCK_MS);
     }
@@ -140,11 +140,11 @@ import profileReal from '../assets/profile.png';
     function enter(clientX: number, clientY: number): void {
       const token = ++enterToken;
       animState = 'entering';
-      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
-      ninja.classList.remove('leaving', 'tracking', 'committing', 'committed');
-      void ninja.offsetWidth;
-      ninja.classList.add('entering');
-      ninja.style.setProperty('--line-pos', '50%');
+      avatar.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+      avatar.classList.remove('leaving', 'tracking', 'committing', 'committed');
+      void avatar.offsetWidth;
+      avatar.classList.add('entering');
+      avatar.style.setProperty('--line-pos', '50%');
 
       setTimeout(() => {
         if (enterToken !== token) return;
@@ -153,14 +153,14 @@ import profileReal from '../assets/profile.png';
           commit();
         } else {
           animState = 'tracking';
-          ninja.classList.remove('entering');
-          ninja.classList.add('tracking');
+          avatar.classList.remove('entering');
+          avatar.classList.add('tracking');
         }
       }, ENTER_MS);
     }
 
     function move(clientX: number, clientY: number): void {
-      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+      avatar.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
     }
 
     function leave(clientX: number, clientY: number): void {
@@ -168,11 +168,11 @@ import profileReal from '../assets/profile.png';
       ++enterToken;
       pendingCommit = false;
       animState = isLocked ? 'locked' : 'idle';
-      ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
-      ninja.classList.remove('entering', 'tracking', 'committed');
-      void ninja.offsetWidth;
-      ninja.classList.add('leaving');
-      ninja.style.setProperty('--line-pos', isLocked ? '100%' : '0%');
+      avatar.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+      avatar.classList.remove('entering', 'tracking', 'committed');
+      void avatar.offsetWidth;
+      avatar.classList.add('leaving');
+      avatar.style.setProperty('--line-pos', isLocked ? '100%' : '0%');
     }
 
     container.addEventListener('mouseenter', (e: MouseEvent) => { isHovering = true;  enter(e.clientX, e.clientY); });
