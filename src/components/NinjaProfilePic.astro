@@ -21,6 +21,8 @@ import profileReal from '../assets/profile.png';
     --profile-ease-curve: cubic-bezier(0.33, 1, 0.68, 1) /* easeOutCubic */;
     --profile-enter-duration: 350ms;
     --profile-leave-duration: 350ms;
+    --profile-lock-duration: 350ms;
+    --profile-lock-ease-curve: cubic-bezier(0.32, 0, 0.67, 0) /* easeInCubic */;
   }
 </style>
 
@@ -70,6 +72,23 @@ import profileReal from '../assets/profile.png';
         black 180deg 360deg
       );
     }
+
+    &.committing {
+      mask-image: linear-gradient(
+        calc(var(--mask-angle) - 90deg),
+        transparent 0% var(--line-pos),
+        black var(--line-pos) 100%
+      );
+      transition: --line-pos var(--profile-lock-duration) var(--profile-lock-ease-curve);
+    }
+
+    &.committed {
+      mask-image: linear-gradient(
+        calc(var(--mask-angle) - 90deg),
+        transparent 0% var(--line-pos),
+        black var(--line-pos) 100%
+      );
+    }
   }
 </style>
 
@@ -81,10 +100,16 @@ import profileReal from '../assets/profile.png';
 <script>
   // Keep in sync with --profile-enter-duration.
   const ENTER_MS = 350;
+  // Keep in sync with --profile-lock-duration.
+  const LOCK_MS = 350;
 
   document.querySelectorAll<HTMLElement>('.profile-container').forEach((container) => {
     const ninja = container.querySelector<HTMLElement>('.profile-ninja')!;
     let enterToken = 0;
+    type AnimState = 'idle' | 'entering' | 'tracking' | 'committing' | 'locked';
+    let animState: AnimState = 'idle';
+    let isLocked = false;
+    let pendingCommit = false;
 
     function getAngle(clientX: number, clientY: number): number {
       const r = container.getBoundingClientRect();
@@ -94,18 +119,42 @@ import profileReal from '../assets/profile.png';
       ) * (180 / Math.PI);
     }
 
+    function commit(): void {
+      const token = ++enterToken;
+      animState = 'committing';
+      ninja.classList.remove('entering', 'tracking');
+      void ninja.offsetWidth;
+      ninja.classList.add('committing');
+      ninja.style.setProperty('--line-pos', isLocked ? '0%' : '100%');
+
+      setTimeout(() => {
+        if (enterToken !== token) return;
+        isLocked = !isLocked;
+        animState = isLocked ? 'locked' : 'idle';
+        ninja.classList.remove('committing');
+        if (isLocked) ninja.classList.add('committed');
+      }, LOCK_MS);
+    }
+
     function enter(clientX: number, clientY: number): void {
       const token = ++enterToken;
+      animState = 'entering';
       ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
-      ninja.classList.remove('leaving', 'tracking');
+      ninja.classList.remove('leaving', 'tracking', 'committing', 'committed');
       void ninja.offsetWidth;
       ninja.classList.add('entering');
       ninja.style.setProperty('--line-pos', '50%');
 
       setTimeout(() => {
         if (enterToken !== token) return;
-        ninja.classList.remove('entering');
-        ninja.classList.add('tracking');
+        if (pendingCommit) {
+          pendingCommit = false;
+          commit();
+        } else {
+          animState = 'tracking';
+          ninja.classList.remove('entering');
+          ninja.classList.add('tracking');
+        }
       }, ENTER_MS);
     }
 
@@ -114,17 +163,25 @@ import profileReal from '../assets/profile.png';
     }
 
     function leave(clientX: number, clientY: number): void {
+      if (animState === 'committing') return;
       ++enterToken;
+      pendingCommit = false;
+      animState = isLocked ? 'locked' : 'idle';
       ninja.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
-      ninja.classList.remove('entering', 'tracking');
+      ninja.classList.remove('entering', 'tracking', 'committed');
       void ninja.offsetWidth;
       ninja.classList.add('leaving');
-      ninja.style.setProperty('--line-pos', '0%');
+      ninja.style.setProperty('--line-pos', isLocked ? '100%' : '0%');
     }
 
     container.addEventListener('mouseenter', (e: MouseEvent) => enter(e.clientX, e.clientY));
     container.addEventListener('mousemove',  (e: MouseEvent) => move(e.clientX, e.clientY));
     container.addEventListener('mouseleave', (e: MouseEvent) => leave(e.clientX, e.clientY));
+
+    container.addEventListener('click', () => {
+      if (animState === 'entering') pendingCommit = true;
+      else if (animState === 'tracking') commit();
+    });
 
     container.addEventListener('touchstart', (e: TouchEvent) => {
       const t = e.touches[0];
@@ -139,7 +196,11 @@ import profileReal from '../assets/profile.png';
 
     container.addEventListener('touchend', (e: TouchEvent) => {
       const t = e.changedTouches[0];
-      leave(t.clientX, t.clientY);
+      if (animState === 'entering') {
+        pendingCommit = true;
+      } else {
+        leave(t.clientX, t.clientY);
+      }
     });
 
     container.addEventListener('touchcancel', (e: TouchEvent) => {
