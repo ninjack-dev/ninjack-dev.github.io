@@ -1,0 +1,90 @@
+---
+import { Image } from 'astro:assets';
+import tumbleweed from '../assets/tumbleweed.webp';
+
+// TODO
+// - rework CSS variables so that some base values produce appropriate timings/measurements
+
+interface Props {
+  chance?: number;
+}
+
+const { chance = 0.2 } = Astro.props;
+---
+<style is:global>
+  .tumbleweed-roll {
+    --tw-size: max(20vh, 8rem);
+    --tw-bottom: 15vh;
+    --tw-roll-duration: 5s;
+    --tw-bounce-height: 10vh;
+    --tw-bounce-duration: 0.6s;
+    --tw-spin-duration: 1.2s;
+
+    position: fixed;
+    bottom: var(--tw-bottom);
+    left: 0;
+    pointer-events: none;
+    z-index: 50;
+    animation: tumbleweed-roll var(--tw-roll-duration) linear forwards;
+  }
+
+  .tumbleweed-bounce {
+    animation: tumbleweed-bounce var(--tw-bounce-duration) infinite;
+  }
+
+  .tumbleweed-img {
+    display: block;
+    width: var(--tw-size);
+    height: auto;
+    animation: tumbleweed-spin var(--tw-spin-duration) linear infinite;
+  }
+
+  @keyframes tumbleweed-roll {
+    from {
+      translate: calc(-1 * var(--tw-size)) 0;
+    }
+    to {
+      translate: calc(100vw + var(--tw-size)) 0;
+    }
+  }
+
+  @keyframes tumbleweed-bounce {
+    0% {
+      translate: 0 0;
+      animation-timing-function: ease-out;
+    }
+    50% {
+      translate: 0 calc(-1 * var(--tw-bounce-height));
+      animation-timing-function: ease-in;
+    }
+    100% {
+      translate: 0 0;
+    }
+  }
+
+  @keyframes tumbleweed-spin {
+    from {
+      rotate: 0deg;
+    }
+    to {
+      rotate: 360deg;
+    }
+  }
+</style>
+
+<template data-tumbleweed data-chance={chance}>
+  <div class="tumbleweed-roll">
+    <div class="tumbleweed-bounce">
+      <Image src={tumbleweed} alt="An image of a tumbleweed from a 2000-something video game. Whoever made it doesn't know what &quot;transparency&quot; means." class="tumbleweed-img" />
+    </div>
+  </div>
+</template>
+
+<script>
+  document.querySelectorAll<HTMLTemplateElement>('template[data-tumbleweed]').forEach((tmpl) => {
+    const chance = parseFloat(tmpl.dataset.chance ?? '0.2');
+    if (Math.random() < chance) {
+      document.body.appendChild(tmpl.content.cloneNode(true));
+    }
+  });
+</script>
