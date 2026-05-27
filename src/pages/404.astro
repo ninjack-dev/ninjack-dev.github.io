@@ -1,0 +1,57 @@
+---
+import '../styles/global.css'
+import Tumbleweed from '../components/Tumbleweed.astro'
+---
+<style>
+  .not-found {
+    text-align: center;
+  }
+
+  #not-found-suggestion {
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+
+  #not-found-suggestion.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+<div class="not-found">
+  <h1>404</h1>
+  <p>Page not found.</p>
+  <p id="not-found-suggestion"></p>
+</div>
+<Tumbleweed chance={0.2} />
+<script>
+  async function suggestNearestPage() {
+    const path = decodeURIComponent(window.location.pathname);
+    const terms = path
+      .replace(/^\/|\/$/g, '')
+      .replace(/\.[^.]+$/, '')
+      .split(/[/\-_]+/)
+      .filter((t) => t.length > 1)
+      .join(' ');
+
+    console.log(terms);
+    if (!terms) return;
+
+    // How do we make the import work for both script-writing purposes as well as in the final site?
+    const pagefind = await import('/pagefind/pagefind.js');
+    const { results } = await pagefind.search(terms);
+    if (results.length === 0) return;
+
+    const best = await results[0].data();
+    if (!best.meta?.title || !best.url) return;
+
+    const link = document.createElement('a');
+    link.href = best.url;
+    link.textContent = best.meta.title;
+
+    const suggestion = document.getElementById('not-found-suggestion')!;
+    suggestion.append('Did you mean ', link, '?');
+    suggestion.classList.add('visible');
+  }
+  suggestNearestPage();
+</script>
