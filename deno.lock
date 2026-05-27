@@ -1,29 +1,15 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@std/internal@^1.0.14": "1.0.14",
-    "jsr:@std/path@^1.1.5": "1.1.5",
     "npm:@astrojs/check@~0.9.9": "0.9.9_typescript@6.0.3",
     "npm:@astrojs/rss@^4.0.18": "4.0.18",
     "npm:@astrojs/ts-plugin@^1.10.7": "1.10.7",
-    "npm:@deno/vite-plugin@^2.0.2": "2.0.2_vite@7.3.3",
     "npm:astro@^6.3.7": "6.3.7",
     "npm:pagefind@^1.5.2": "1.5.2",
     "npm:rehype-mathjax@^7.1.0": "7.1.0",
     "npm:remark-math@6": "6.0.0",
     "npm:remark-toc@9": "9.0.0",
     "npm:typescript@^6.0.3": "6.0.3"
-  },
-  "jsr": {
-    "@std/internal@1.0.14": {
-      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
-    },
-    "@std/path@1.1.5": {
-      "integrity": "ccea00982ea28c36becaf6e62f855406c76a8c32d462f66f415bbb7d83a271bc",
-      "dependencies": [
-        "jsr:@std/internal"
-      ]
-    }
   },
   "npm": {
     "@astrojs/check@0.9.9_typescript@6.0.3": {
@@ -2849,15 +2835,11 @@
     }
   },
   "workspace": {
-    "dependencies": [
-      "jsr:@std/path@^1.1.5"
-    ],
     "packageJson": {
       "dependencies": [
         "npm:@astrojs/check@~0.9.9",
         "npm:@astrojs/rss@^4.0.18",
         "npm:@astrojs/ts-plugin@^1.10.7",
-        "npm:@deno/vite-plugin@^2.0.2",
         "npm:astro@^6.3.7",
         "npm:pagefind@^1.5.2",
         "npm:rehype-mathjax@^7.1.0",
