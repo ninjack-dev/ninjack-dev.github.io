@@ -1,4 +1,5 @@
 import { defineConfig, passthroughImageService } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import rehypeMathjax from "rehype-mathjax";
 import remarkMath from "remark-math";
 import remarkToc from "remark-toc";
@@ -11,12 +12,18 @@ export default defineConfig({
   integrations: [pagefind()],
   prefetch: true,
   markdown: {
-    remarkPlugins: [
-      remarkMath,
-      remarkToc,
-    ],
-    rehypePlugins: [
-      rehypeMathjax,
-    ],
+    processor: unified({
+      remarkPlugins: [
+        remarkMath,
+        remarkToc,
+      ],
+      rehypePlugins: [
+        rehypeMathjax,
+      ],
+      smartypants: {
+        ellipses: false,
+        backticks: false,
+      },
+    }),
   },
 });
