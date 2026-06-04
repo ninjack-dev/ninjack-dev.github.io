@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css'
 import ProfilePic from '../components/AvatarProfilePic.astro';
+import StatusBar from '../components/StatusBar/StatusBar.astro';
 
 // TODO: 
 // - Replace these with the hrefs to their content pages
@@ -73,6 +74,7 @@ const menuItems = ["Writings", "Projects", "About"];
     <title>Astro</title>
   </head>
   <body>
+    <StatusBar />
     <div class="home-panels">
       <div class="main-menu">
         {menuItems.map((l, i) => {
