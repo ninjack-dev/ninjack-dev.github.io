@@ -1,11 +1,38 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
+import { globplus, markdownHooks } from "./loaders/globplus/index.ts";
+import { syncMeta } from "./sync-meta.ts";
 
 const pattern = ["**/*.md", ...(!import.meta.env.DEV ? ["!**/_*/**"] : [])];
 
 const writings = defineCollection({
-  loader: glob({ base: "./src/content/Writings", pattern: pattern }),
+  loader: globplus({
+    base: "./src/content/Writings",
+    pattern: pattern,
+    integrations: [
+      markdownHooks,
+      syncMeta({
+        path: './src/content/Writings/meta.json',
+        whitelist: [
+          "root",
+          "heading",
+          "paragraph",
+          "list",
+          "listItem",
+          "blockquote",
+          "code",
+          "table",
+          "tableRow",
+          "tableCell",
+          "thematicBreak",
+          "image",
+          "footnoteDefinition",
+          "definition",
+        ],
+      }),
+    ],
+  }),
   schema: z.object({
     title: z.string().optional(),
     description: z.string().optional(),
