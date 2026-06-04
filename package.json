@@ -13,14 +13,22 @@
     "@astrojs/markdown-remark": "^7.2.0",
     "@astrojs/rss": "^4.0.18",
     "@astrojs/ts-plugin": "1.10.9",
+    "@types/hast": "^3.0.4",
+    "@types/mdast": "^4.0.4",
     "@types/node": "^25.9.1",
+    "@types/picomatch": "^4.0.3",
     "astro": "6.4.2",
+    "github-slugger": "^2.0.0",
+    "p-limit": "^7.3.0",
     "pagefind": "^1.5.2",
+    "picomatch": "^4.0.4",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "rehype-mathjax": "^7.1.0",
     "remark-math": "^6.0.0",
     "remark-toc": "^9.0.0",
-    "typescript": "^6.0.3"
+    "tinyglobby": "^0.2.15",
+    "typescript": "^6.0.3",
+    "vfile": "^6.0.3"
   }
 }

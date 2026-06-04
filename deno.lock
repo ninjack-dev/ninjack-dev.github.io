@@ -5,17 +5,23 @@
     "npm:@astrojs/markdown-remark@^7.2.0": "7.2.0",
     "npm:@astrojs/rss@^4.0.18": "4.0.18",
     "npm:@astrojs/ts-plugin@1.10.9": "1.10.9",
-    "npm:@types/js-yaml@^4.0.9": "4.0.9",
+    "npm:@types/hast@^3.0.4": "3.0.4",
+    "npm:@types/mdast@^4.0.4": "4.0.4",
     "npm:@types/node@^25.9.1": "25.9.1",
+    "npm:@types/picomatch@^4.0.3": "4.0.3",
     "npm:astro@6.4.2": "6.4.2_@types+node@25.9.1",
-    "npm:js-yaml@^4.1.1": "4.1.1",
+    "npm:github-slugger@2": "2.0.0",
+    "npm:p-limit@^7.3.0": "7.3.0",
     "npm:pagefind@^1.5.2": "1.5.2",
+    "npm:picomatch@^4.0.4": "4.0.4",
     "npm:prettier-plugin-astro@~0.14.1": "0.14.1",
     "npm:prettier@^3.8.3": "3.8.3",
     "npm:rehype-mathjax@^7.1.0": "7.1.0",
     "npm:remark-math@6": "6.0.0",
     "npm:remark-toc@9": "9.0.0",
-    "npm:typescript@^6.0.3": "6.0.3"
+    "npm:tinyglobby@~0.2.15": "0.2.16",
+    "npm:typescript@^6.0.3": "6.0.3",
+    "npm:vfile@^6.0.3": "6.0.3"
   },
   "npm": {
     "@astrojs/check@0.9.9_typescript@6.0.3_prettier@3.8.3_prettier-plugin-astro@0.14.1": {
@@ -48,8 +54,8 @@
         "unified"
       ]
     },
-    "@astrojs/language-server@2.16.8_prettier@3.8.3_prettier-plugin-astro@0.14.1": {
-      "integrity": "sha512-yg1pZF6hs9FaKr2fgXMOGbW7pDLgFexFjuhWilPAc8VybTU+WSnbfbhYaUL1exm6dAK4sM3aKXGcfVwss+HXbg==",
+    "@astrojs/language-server@2.16.10_prettier@3.8.3_prettier-plugin-astro@0.14.1_typescript@6.0.3": {
+      "integrity": "sha512-87VQ/5GSdHlRnUA+hGuerYyIGAj+9RbZmATyuKLEUePinUXhQ5YkRnRrHhOD9sSi5JOErLjrLkHnfZFEvGrV8w==",
       "dependencies": [
         "@astrojs/compiler@2.13.1",
         "@astrojs/yaml2ts",
@@ -512,8 +518,8 @@
     "@jridgewell/sourcemap-codec@1.5.5": {
       "integrity": "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="
     },
-    "@nodable/entities@2.1.0": {
-      "integrity": "sha512-nyT7T3nbMyBI/lvr6L5TyWbFJAI9FTgVRakNoBqCD+PmID8DzFrrNdLLtHMwMszOtqZa8PAOV24ZqDnQrhQINA=="
+    "@nodable/entities@2.1.1": {
+      "integrity": "sha512-Pig3HxDIoMgjdEH8OCf/dkcTmLFjJRjWuq8jSnklu284/TKOPibSRERmOykiwmyXTtv61mP+44f3GMx0tLAyjg=="
     },
     "@oslojs/encoding@1.1.0": {
       "integrity": "sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ=="
@@ -756,9 +762,6 @@
         "@types/unist"
       ]
     },
-    "@types/js-yaml@4.0.9": {
-      "integrity": "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="
-    },
     "@types/katex@0.16.8": {
       "integrity": "sha512-trgaNyfU+Xh2Tc+ABIb44a5AYUpicB3uwirOioeOkNPPbmgRNtcWyDeeFRzjPZENO9Vq8gvVqfhaaXWLlevVwg=="
     },
@@ -785,6 +788,9 @@
       "dependencies": [
         "undici-types"
       ]
+    },
+    "@types/picomatch@4.0.3": {
+      "integrity": "sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ=="
     },
     "@types/ungap__structured-clone@1.2.0": {
       "integrity": "sha512-ZoaihZNLeZSxESbk9PUAPZOlSpcKx81I1+4emtULDVmBLkYutTcMlCj2K9VNlf9EWODxdO6gkAqEaLorXwZQVA=="
@@ -1475,8 +1481,8 @@
     "jsonc-parser@3.3.1": {
       "integrity": "sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ=="
     },
-    "katex@0.16.45": {
-      "integrity": "sha512-pQpZbdBu7wCTmQUh7ufPmLr0pFoObnGUoL/yhtwJDgmmQpbkg/0HSVti25Fu4rmd1oCR6NGWe9vqTWuWv3GcNA==",
+    "katex@0.16.47": {
+      "integrity": "sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==",
       "dependencies": [
         "commander@8.3.0"
       ],
@@ -2324,8 +2330,8 @@
     "sax@1.6.0": {
       "integrity": "sha512-6R3J5M4AcbtLUdZmRv2SygeVaM7IhrLXu9BmnOGmmACak8fiUtOsYNWUS4uK7upbmHIBbLBeFeI//477BKLBzA=="
     },
-    "semver@7.8.0": {
-      "integrity": "sha512-AcM7dV/5ul4EekoQ29Agm5vri8JNqRyj39o0qpX6vDF2GZrtutZl5RwgD1XnZjiTAfncsJhMI48QQH3sN87YNA==",
+    "semver@7.8.1": {
+      "integrity": "sha512-rkVq3IXh+4FDGch+KwzX3aV9W3kO54GyEgpvBzSyctDA6Xtd7RJQV1xmXbeQp5v7+VzLOfVqiutSE6GICgPFvg==",
       "bin": true
     },
     "sharp@0.34.5": {
@@ -2860,17 +2866,23 @@
         "npm:@astrojs/markdown-remark@^7.2.0",
         "npm:@astrojs/rss@^4.0.18",
         "npm:@astrojs/ts-plugin@1.10.9",
-        "npm:@types/js-yaml@^4.0.9",
+        "npm:@types/hast@^3.0.4",
+        "npm:@types/mdast@^4.0.4",
         "npm:@types/node@^25.9.1",
+        "npm:@types/picomatch@^4.0.3",
         "npm:astro@6.4.2",
-        "npm:js-yaml@^4.1.1",
+        "npm:github-slugger@2",
+        "npm:p-limit@^7.3.0",
         "npm:pagefind@^1.5.2",
+        "npm:picomatch@^4.0.4",
         "npm:prettier-plugin-astro@~0.14.1",
         "npm:prettier@^3.8.3",
         "npm:rehype-mathjax@^7.1.0",
         "npm:remark-math@6",
         "npm:remark-toc@9",
-        "npm:typescript@^6.0.3"
+        "npm:tinyglobby@~0.2.15",
+        "npm:typescript@^6.0.3",
+        "npm:vfile@^6.0.3"
       ]
     }
   }
