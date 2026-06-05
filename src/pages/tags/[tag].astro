@@ -1,0 +1,50 @@
+---
+import { getCollection, getEntry, render } from "astro:content";
+
+export async function getStaticPaths() {
+  const definedTags = await getCollection("tags");
+  const allPosts = await getCollection("writings", ({ data }) =>
+    import.meta.env.PROD ? data.published : true,
+  );
+
+  const uniqueTags = [
+    ...new Set(allPosts.map((post) => post.data.tags ?? []).flat()),
+  ];
+
+  return uniqueTags.map((tag) => {
+    const postsWithTag = allPosts.filter((post) =>
+      post.data.tags?.includes(tag),
+    );
+    const tagDef = definedTags.find((tagDef) => tagDef.id == tag.toLowerCase());
+    return {
+      params: { tag },
+      props: { tagId: tagDef?.id, posts: postsWithTag },
+    };
+  });
+}
+
+const { tag } = Astro.params;
+const { tagId, posts } = Astro.props;
+const Content = tagId
+  ? (await render((await getEntry("tags", tagId))!)).Content
+  : undefined;
+---
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>{tag}</title>
+</head>
+<body>
+  <h1>{tag}</h1>
+  {Content && <Content />}
+  <ul>
+    {
+      posts.map((post) => (
+        <li>
+          <a href={`/writings/${post.id}`}>{post.data.title ?? post.id}</a>
+        </li>
+      ))
+    }
+  </ul>
+</body>
