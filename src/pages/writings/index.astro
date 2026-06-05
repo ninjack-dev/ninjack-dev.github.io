@@ -1,0 +1,7 @@
+---
+import { getCollection } from 'astro:content';
+
+const entries = await getCollection('writings', ({ data }) =>
+    import.meta.env.PROD ? data.published : true,
+);
+---
