@@ -1,5 +1,5 @@
 ---
-import '../styles/global.css'
+import BaseLayout from '../layouts/BaseLayout.astro';
 import ProfilePic from '../components/AvatarProfilePic.astro';
 import StatusBar from '../components/StatusBar/StatusBar.astro';
 
@@ -8,7 +8,9 @@ import StatusBar from '../components/StatusBar/StatusBar.astro';
 // - Add scaffold for submenu entries for Writings categories/subcategories/series
 const menuItems = ["Writings", "Projects", "About"];
 ---
-<style>
+<!-- Document-level rules must target the <body> rendered by BaseLayout, so
+     they can't be scoped to this component. Bundled only on this page. -->
+<style is:global>
   :root {
     --panel-gap: 4rem;
   }
@@ -18,7 +20,9 @@ const menuItems = ["Writings", "Projects", "About"];
     align-items: center;
     min-height: 100vh;
   }
+</style>
 
+<style>
   .home-panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -64,31 +68,21 @@ const menuItems = ["Writings", "Projects", "About"];
 
 </style>
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>Astro</title>
-  </head>
-  <body>
-    <StatusBar />
-    <div class="home-panels">
-      <div class="main-menu">
-        {menuItems.map((l, i) => {
-          return <div class="main-menu-button">
-            <span class="main-menu-button-index">[{i + 1}]</span>
-            <span class="main-menu-button-label">{l}</span>
-          </div>
-        })}
-      </div>
-      <div class="home-panel-placeholder">
-        <ProfilePic />
-        <blockquote style="margin-top: 1em;">Jack of all trades, master of some</blockquote>
-        <p>Software engineer based out of Portland, OR.<br>Lover of all things dev tooling.</p>
-      </div>
+<BaseLayout title="ninjack.dev">
+  <StatusBar />
+  <div class="home-panels">
+    <div class="main-menu">
+      {menuItems.map((l, i) => {
+        return <div class="main-menu-button">
+          <span class="main-menu-button-index">[{i + 1}]</span>
+          <span class="main-menu-button-label">{l}</span>
+        </div>
+      })}
     </div>
-  </body>
-</html>
+    <div class="home-panel-placeholder">
+      <ProfilePic />
+      <blockquote style="margin-top: 1em;">Jack of all trades, master of some</blockquote>
+      <p>Software engineer based out of Portland, OR.<br>Lover of all things dev tooling.</p>
+    </div>
+  </div>
+</BaseLayout>

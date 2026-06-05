@@ -1,6 +1,6 @@
 ---
 import { getCollection, getEntry, render } from 'astro:content';
-import '../../styles/global.css'
+import BaseLayout from '../../layouts/BaseLayout.astro';
 
 export async function getStaticPaths() {
     // Build routes for every entry in dev; only published entries in production.
@@ -18,15 +18,8 @@ const { Content } = await render(entry);
 const title = entry.data.title ?? entry.id.split('/').at(-1)!;
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <h1>{title}</h1>
-    <blockquote>{entry.data.description}</blockquote>
-    <Content />
-  </body>
-</html>
+<BaseLayout title={title} description={entry.data.description}>
+  <h1>{title}</h1>
+  <blockquote>{entry.data.description}</blockquote>
+  <Content />
+</BaseLayout>

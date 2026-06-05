@@ -1,7 +1,8 @@
 ---
-import '../styles/global.css'
+import BaseLayout from '../layouts/BaseLayout.astro'
 import Tumbleweed from '../components/Tumbleweed.astro'
 ---
+<BaseLayout title="404 — Not Found">
 <style>
   .not-found {
     text-align: center;
@@ -55,3 +56,4 @@ import Tumbleweed from '../components/Tumbleweed.astro'
   }
   suggestNearestPage();
 </script>
+</BaseLayout>

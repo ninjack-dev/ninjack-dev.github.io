@@ -1,7 +1,19 @@
 ---
 import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
 
 const entries = await getCollection('writings', ({ data }) =>
     import.meta.env.PROD ? data.published : true,
 );
 ---
+
+<BaseLayout title="Writings">
+  <h1>Writings</h1>
+  <ul>
+    {entries.map((entry) => (
+      <li>
+        <a href={`/writings/${entry.id}`}>{entry.data.title ?? entry.id}</a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

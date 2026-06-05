@@ -1,5 +1,6 @@
 ---
 import { getCollection, getEntry, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
   const definedTags = await getCollection("tags");
@@ -30,12 +31,7 @@ const Content = tagId
   : undefined;
 ---
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width" />
-  <title>{tag}</title>
-</head>
-<body>
+<BaseLayout title={tag}>
   <h1>{tag}</h1>
   {Content && <Content />}
   <ul>
@@ -47,4 +43,4 @@ const Content = tagId
       ))
     }
   </ul>
-</body>
+</BaseLayout>
