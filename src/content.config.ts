@@ -39,9 +39,17 @@ const writings = defineCollection({
     series: z.string().optional(),
     date: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
+    tags: z.array(z.string()).optional(),
     published: z.boolean().default(false),
   }),
 });
+
+const tags = defineCollection({
+  loader: glob({
+    base: "./src/content/Tags",
+    pattern: pattern,
+  })
+})
 
 const projects = defineCollection({
   loader: glob({
@@ -55,4 +63,4 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { writings, projects };
+export const collections = { writings, projects, tags };
