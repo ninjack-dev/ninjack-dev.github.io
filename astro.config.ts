@@ -22,24 +22,13 @@ export default defineConfig({
       fallbacks: ["serif"],
     },
     {
-      provider: fontProviders.local(),
-      name: "JetBrains Mono Nerd Font",
+      provider: fontProviders.fontsource(),
+      name: "JetBrains Mono",
       cssVariable: "--font-jetbrains-mono",
+      weights: [400, 600],
+      styles: ["normal"],
+      subsets: ["latin"],
       fallbacks: ["monospace"],
-      options: {
-        variants: [
-          {
-            weight: 400,
-            style: "normal",
-            src: ["./src/assets/fonts/JetBrainsMonoNerdFont-Regular.woff2"],
-          },
-          {
-            weight: 600,
-            style: "normal",
-            src: ["./src/assets/fonts/JetBrainsMonoNerdFont-Bold.woff2"],
-          },
-        ],
-      },
     },
   ],
   markdown: {
