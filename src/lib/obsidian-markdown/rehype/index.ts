@@ -1,12 +1,18 @@
-import type { Handlers } from 'mdast-util-to-hast';
-import { blockLinkHandler } from './block-links.ts';
-import { calloutHandler } from './callouts.ts';
-import { wikiEmbedHandler } from './wiki-embeds.ts';
-import { wikiLinkHandler } from './wiki-links.ts';
+import type { Root } from 'hast';
+import { transformBlockLinksHast } from './block-links.ts';
+import { transformCalloutsHast } from './callouts.ts';
+import { transformWikiEmbedsHast } from './wiki-embeds.ts';
+import { transformWikiLinksHast } from './wiki-links.ts';
 
-export const obsidianHandlers: Handlers = {
-  obsidianWikiLink: wikiLinkHandler,
-  obsidianEmbed: wikiEmbedHandler,
-  obsidianCallout: calloutHandler,
-  obsidianBlockLink: blockLinkHandler,
-};
+/**
+ * Run every Obsidian HAST-stage handler over a HAST tree, in order. Most are
+ * intentional no-ops (their nodes are emitted in final form at the MDAST stage);
+ * callouts are restructured here from their marker `<div>` into the final
+ * `<div class="callout">` / `<details class="callout">` markup. See each module.
+ */
+export function finalizeObsidian(tree: Root): void {
+  transformWikiLinksHast(tree);
+  transformWikiEmbedsHast(tree);
+  transformCalloutsHast(tree);
+  transformBlockLinksHast(tree);
+}
