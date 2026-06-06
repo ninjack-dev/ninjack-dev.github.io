@@ -8,9 +8,9 @@ import { type CollectionEntry, getCollection } from "astro:content";
  *  - the `ontology()` globplus integration, which classifies the raw on-disk
  *    file set (display-name segments) and stamps `data.category` / `data.series`
  *    onto each entry (see {@link classifyTree});
- *  - Astro pages, which reconstruct the node set (categories + series) from the
- *    stamped coordinates over `getCollection('Writings')` (see
- *    {@link buildOntology}).
+ *  - Astro pages, which read the authoritative node set the loader published to
+ *    the in-memory store and pair it with `getCollection('Writings')` entries
+ *    (see {@link getOntology}).
  *
  * Both slug via the same `github-slugger` the loader's `generateIdDefault` uses,
  * so node paths computed here match loader entry ids exactly.
@@ -260,7 +260,7 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
 }
 
 // ---------------------------------------------------------------------------
-// Page-side helper: reconstruct the ontology from stamped collection entries.
+// Page-side view: pair the authoritative node set with collection entries.
 // ---------------------------------------------------------------------------
 
 type WritingEntry = CollectionEntry<"writings">;
@@ -284,61 +284,11 @@ export interface OntologyView {
 }
 
 /**
- * Reconstruct the ontology node set from the stamped `data.category` /
- * `data.series` coordinates of every entry, and expose listing/count helpers.
- *
- * `entries` should already be publish-filtered by the caller for *route
- * emission*, but counts/listings here only ever reflect the entries passed in,
- * so pass the prod-published-only set in prod and the full set in dev.
- */
-export function buildOntology(entries: WritingEntry[]): OntologyView {
-  const nodes = new Map<string, OntologyNode>();
-
-  // Reconstruct nodes from each entry's coordinates.
-  for (const entry of entries) {
-    const category = (entry.data.category ?? []) as string[];
-    const series = (entry.data.series ?? null) as string | null;
-
-    // Register every prefix of the category display path as a category node.
-    for (let i = 0; i < category.length; i++) {
-      const displayPath = category.slice(0, i + 1);
-      const path = slugPath(displayPath);
-      if (!nodes.has(path)) {
-        nodes.set(path, {
-          kind: "category",
-          path,
-          displayPath,
-          name: displayPath.at(-1)!,
-          parent: i === 0 ? null : slugPath(category.slice(0, i)),
-        });
-      }
-    }
-
-    // Register the series node (immediate parent dir of the article).
-    if (series) {
-      const displayPath = [...category, series];
-      const path = slugPath(displayPath);
-      if (!nodes.has(path)) {
-        nodes.set(path, {
-          kind: "series",
-          path,
-          displayPath,
-          name: series,
-          parent: category.length ? slugPath(category) : null,
-        });
-      }
-    }
-  }
-
-  return makeView(nodes, entries);
-}
-
-/**
  * Assemble an {@link OntologyView} from an authoritative node set and the
  * publish-filtered entries. The node set is the source of truth for taxonomy
  * structure; `entries` supplies the articles whose counts/listings the view
- * reflects. Shared by {@link buildOntology} (node set reconstructed from
- * entries) and {@link getOntology} (node set from the in-memory store).
+ * reflects. Used by {@link getOntology}, which sources the node set from the
+ * in-memory store the loader published.
  */
 function makeView(
   nodes: Map<string, OntologyNode>,
