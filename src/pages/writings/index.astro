@@ -1,13 +1,9 @@
 ---
-import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { buildOntology } from "../../lib/ontology.ts";
+import { getOntology } from "../../lib/ontology.ts";
 
-// In prod, list only published articles; in dev, everything.
-const entries = await getCollection("writings", ({ data }) =>
-  import.meta.env.PROD ? data.published : true,
-);
-const view = buildOntology(entries);
+// Shared, publish-filtered ontology view (prod: published only; dev: all).
+const view = await getOntology();
 
 const topCategories = view.childrenOf(null).filter((n) => n.kind === "category");
 // Loose articles directly at the Writings root (degraded case): no node path.

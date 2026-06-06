@@ -1,9 +1,8 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProfilePic from '../components/AvatarProfilePic.astro';
 import StatusBar from '../components/StatusBar/StatusBar.astro';
-import { buildOntology, type OntologyNode } from '../lib/ontology.ts';
+import { getOntology, type OntologyNode } from '../lib/ontology.ts';
 import OntologyTree, { type GroupNode } from '../components/OntologyTree.astro';
 
 // TODO:
@@ -11,12 +10,9 @@ import OntologyTree, { type GroupNode } from '../components/OntologyTree.astro';
 const menuItems = ["Writings", "Projects", "About"];
 
 // Writings grouping for the menu: categories → subcategories → series, each
-// with a per-group published-article count. In prod only published articles
-// are counted/listed; in dev, everything (so fixtures are visible locally).
-const entries = await getCollection('writings', ({ data }) =>
-  import.meta.env.PROD ? data.published : true,
-);
-const view = buildOntology(entries);
+// with a per-group published-article count. The shared view is publish-filtered
+// (prod: published only; dev: everything, so fixtures are visible locally).
+const view = await getOntology();
 
 const toGroup = (node: OntologyNode): GroupNode => ({
   node,

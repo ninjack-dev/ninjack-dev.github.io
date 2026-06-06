@@ -1,8 +1,8 @@
 ---
-import { getCollection, getEntry, render } from "astro:content";
+import { getEntry, render } from "astro:content";
 import type { GetStaticPaths } from "astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { buildOntology } from "../../lib/ontology.ts";
+import { getOntology } from "../../lib/ontology.ts";
 import "../../styles/prose.css";
 
 // One catch-all route serving the full hierarchical taxonomy (ADR 0003):
@@ -10,11 +10,8 @@ import "../../styles/prose.css";
 // - series node paths render an index (description + article list);
 // - category node paths render an index (subcategories, series, loose articles).
 export const getStaticPaths = (async () => {
-  // In prod, count/list/route only published articles; in dev, everything.
-  const entries = await getCollection("writings", ({ data }) =>
-    import.meta.env.PROD ? data.published : true,
-  );
-  const view = buildOntology(entries);
+  // Shared, publish-filtered ontology view (prod: published only; dev: all).
+  const view = await getOntology();
 
   // One route per article.
   const articleRoutes = view.articles.map((entry) => ({
@@ -41,12 +38,9 @@ type Props =
 
 const props = Astro.props as Props;
 
-// Rebuild the view for this render (page modules don't share getStaticPaths
-// scope). Same publish filter as route emission.
-const entries = await getCollection("writings", ({ data }) =>
-  import.meta.env.PROD ? data.published : true,
-);
-const view = buildOntology(entries);
+// Re-fetch the shared view for this render (page modules don't share
+// getStaticPaths scope); getOntology is memoized, so this reuses the cache.
+const view = await getOntology();
 ---
 
 {
