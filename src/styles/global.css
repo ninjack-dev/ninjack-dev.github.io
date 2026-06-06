@@ -1,15 +1,66 @@
 :root {
+  /* Base palette (dark-only) */
   --background: #202229;
+  --surface: #2a2d36;
   --text: #dcdcdc;
+  --text-muted: #9aa0ad;
   --accent: #c0ff01;
+  --border: #3a3e49;
+  --code-bg: #2a2d36;
 
+  /* Links */
+  --link: var(--accent);
+  --link-hover: #d6ff4d;
+
+  /* Callout accent colors */
+  --callout-note: #4aa3ff;
+  --callout-tip: #2ecc71;
+  --callout-warning: #f1c40f;
+  --callout-danger: #e74c3c;
+  --callout-quote: #9aa0ad;
+
+  /* Typography — swap --font-body to retheme the reading font */
+  --font-serif: var(--font-source-serif), serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+  --font-body: var(--font-serif);
+  --font-heading: var(--font-mono);
+
+  /* Reading column */
+  --content-width: 68ch;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
   background-color: var(--background);
   color: var(--text);
 }
 
-blockquote {
-	border-left: 4px solid var(--accent);
-	padding: 0 0 0 20px;
-	margin: 0;
-	font-size: 1.333em;
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
 }

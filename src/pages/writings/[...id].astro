@@ -1,6 +1,7 @@
 ---
 import { getCollection, getEntry, render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/prose.css';
 
 export async function getStaticPaths() {
     // Build routes for every entry in dev; only published entries in production.
@@ -19,7 +20,9 @@ const title = entry.data.title ?? entry.id.split('/').at(-1)!;
 ---
 
 <BaseLayout title={title} description={entry.data.description}>
-  <h1>{title}</h1>
-  <blockquote>{entry.data.description}</blockquote>
-  <Content />
+  <main class="prose">
+    <h1>{title}</h1>
+    <blockquote>{entry.data.description}</blockquote>
+    <Content />
+  </main>
 </BaseLayout>
