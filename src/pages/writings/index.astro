@@ -1,19 +1,39 @@
 ---
-import { getCollection } from 'astro:content';
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { buildOntology } from "../../lib/ontology.ts";
 
-const entries = await getCollection('writings', ({ data }) =>
-    import.meta.env.PROD ? data.published : true,
+// In prod, list only published articles; in dev, everything.
+const entries = await getCollection("writings", ({ data }) =>
+  import.meta.env.PROD ? data.published : true,
+);
+const view = buildOntology(entries);
+
+const topCategories = view.childrenOf(null).filter((n) => n.kind === "category");
+// Loose articles directly at the Writings root (degraded case): no node path.
+const rootArticles = view.articles.filter(
+  (e) => ((e.data.category ?? []) as string[]).length === 0 && !e.data.series,
 );
 ---
 
 <BaseLayout title="Writings">
   <h1>Writings</h1>
   <ul>
-    {entries.map((entry) => (
-      <li>
-        <a href={`/writings/${entry.id}`}>{entry.data.title ?? entry.id}</a>
-      </li>
-    ))}
+    {
+      topCategories.map((cat) => (
+        <li>
+          <a href={`/writings/${cat.path}`}>{cat.name}</a> ({view.count(cat.path)})
+        </li>
+      ))
+    }
+    {
+      rootArticles.map((entry) => (
+        <li>
+          <a href={`/writings/${entry.id}`}>
+            {entry.data.title ?? entry.id}
+          </a>
+        </li>
+      ))
+    }
   </ul>
 </BaseLayout>

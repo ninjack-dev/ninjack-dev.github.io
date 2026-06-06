@@ -1,0 +1,158 @@
+---
+import { getCollection, getEntry, render } from "astro:content";
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { buildOntology } from "../../lib/ontology.ts";
+import "../../styles/prose.css";
+
+// One catch-all route serving the full hierarchical taxonomy (ADR 0003):
+// - article paths render the article;
+// - series node paths render an index (description + article list);
+// - category node paths render an index (subcategories, series, loose articles).
+export const getStaticPaths = (async () => {
+  // In prod, count/list/route only published articles; in dev, everything.
+  const entries = await getCollection("writings", ({ data }) =>
+    import.meta.env.PROD ? data.published : true,
+  );
+  const view = buildOntology(entries);
+
+  // One route per article.
+  const articleRoutes = view.articles.map((entry) => ({
+    params: { path: entry.id },
+    props: { kind: "article" as const, id: entry.id },
+  }));
+
+  // One route per node (category or series). Emit only nodes that have at
+  // least one published article in scope, so empty nodes don't 404-bait.
+  const nodeRoutes = [...view.nodes.values()]
+    .filter((node) => view.count(node.path) > 0)
+    .map((node) => ({
+      params: { path: node.path },
+      props: { kind: node.kind, id: node.path },
+    }));
+
+  return [...articleRoutes, ...nodeRoutes];
+}) satisfies GetStaticPaths;
+
+type Props =
+  | { kind: "article"; id: string }
+  | { kind: "category"; id: string }
+  | { kind: "series"; id: string };
+
+const props = Astro.props as Props;
+
+// Rebuild the view for this render (page modules don't share getStaticPaths
+// scope). Same publish filter as route emission.
+const entries = await getCollection("writings", ({ data }) =>
+  import.meta.env.PROD ? data.published : true,
+);
+const view = buildOntology(entries);
+---
+
+{
+  props.kind === "article" &&
+    (await (async () => {
+      const entry = await getEntry("writings", props.id);
+      if (!entry) return Astro.redirect("/404");
+      const { Content } = await render(entry);
+      const title = entry.data.title ?? entry.id.split("/").at(-1)!;
+      return (
+        <BaseLayout title={title} description={entry.data.description}>
+          <main class="prose">
+            <h1>{title}</h1>
+            {entry.data.description && (
+              <blockquote>{entry.data.description}</blockquote>
+            )}
+            <Content />
+          </main>
+        </BaseLayout>
+      );
+    })())
+}
+
+{
+  props.kind === "series" &&
+    (await (async () => {
+      const node = view.nodes.get(props.id)!;
+      const description = await getEntry("writings", props.id);
+      const Content = description ? (await render(description)).Content : null;
+      const articles = view.articlesOf(props.id);
+      const title = description?.data.title ?? node.name;
+      return (
+        <BaseLayout title={title} description={description?.data.description}>
+          <main class="prose">
+            <h1>{title}</h1>
+            {Content && <Content />}
+            <h2>Articles</h2>
+            <ul>
+              {articles.map((entry) => (
+                <li>
+                  <a href={`/writings/${entry.id}`}>
+                    {entry.data.title ?? entry.id.split("/").at(-1)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </main>
+        </BaseLayout>
+      );
+    })())
+}
+
+{
+  props.kind === "category" &&
+    (await (async () => {
+      const node = view.nodes.get(props.id)!;
+      const children = view.childrenOf(props.id);
+      const subcategories = children.filter((c) => c.kind === "category");
+      const seriesNodes = children.filter((c) => c.kind === "series");
+      const looseArticles = view.articlesOf(props.id);
+      return (
+        <BaseLayout title={node.name}>
+          <main class="prose">
+            <h1>{node.name}</h1>
+            {subcategories.length > 0 && (
+              <>
+                <h2>Subcategories</h2>
+                <ul>
+                  {subcategories.map((c) => (
+                    <li>
+                      <a href={`/writings/${c.path}`}>{c.name}</a>{" "}
+                      ({view.count(c.path)})
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {seriesNodes.length > 0 && (
+              <>
+                <h2>Series</h2>
+                <ul>
+                  {seriesNodes.map((c) => (
+                    <li>
+                      <a href={`/writings/${c.path}`}>{c.name}</a>{" "}
+                      ({view.count(c.path)})
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {looseArticles.length > 0 && (
+              <>
+                <h2>Articles</h2>
+                <ul>
+                  {looseArticles.map((entry) => (
+                    <li>
+                      <a href={`/writings/${entry.id}`}>
+                        {entry.data.title ?? entry.id.split("/").at(-1)}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </main>
+        </BaseLayout>
+      );
+    })())
+}
