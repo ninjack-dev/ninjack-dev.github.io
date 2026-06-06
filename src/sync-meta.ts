@@ -33,7 +33,7 @@ export function buildSkeleton(
 
   if ("children" in node) {
     if (node.children.length > 0) {
-      const children = node.children
+      const children = (node.children as Nodes[])
         .map((c) => buildSkeleton(c, filter))
         .filter((c): c is SkeletonNode => c !== null);
       if (children.length > 0) skeleton.children = children;

@@ -1,27 +1,13 @@
-import type { Plugin } from 'unified';
 import type { Root, Paragraph, PhrasingContent, Text } from 'mdast';
 import { visit } from 'unist-util-visit';
 import type { ObsidianWikiLink } from '../types.ts';
-import { generateId } from '../../generate-id.ts';
 
-// Matches [[target]], [[target#fragment]], [[target|alias]] — but NOT ![[...]]
+// Matches [[target]], [[target#fragment]], [[target|alias]] — but NOT ![[...]].
+// Pure tokenizer (ADR 0004): captures raw text only; no path resolution, no
+// slugging, no tree knowledge. The `obsidian` loader integration resolves these.
 const WIKI_LINK = /(?<!\!)\[\[([^\]|#\n]+?)(?:#([^\]|\n]+))?(?:\|([^\]\n]+))?\]\]/g;
 
-function slugifyFragment(text: string): string {
-  return text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-}
-
-function resolveTarget(rawTarget: string, index?: Map<string, string>): string {
-  const clean = rawTarget.replace(/\.md$/, '').trim();
-  if (clean.includes('/')) {
-    // Full path provided — slugify each segment directly
-    return generateId(clean);
-  }
-  // Short name — look up in the filename→ID index built at config time
-  return index?.get(clean.toLowerCase()) ?? generateId(clean);
-}
-
-function splitOnWikiLinks(children: PhrasingContent[], index?: Map<string, string>): PhrasingContent[] {
+function splitOnWikiLinks(children: PhrasingContent[]): PhrasingContent[] {
   const result: PhrasingContent[] = [];
   for (const child of children) {
     if (child.type !== 'text') {
@@ -37,33 +23,25 @@ function splitOnWikiLinks(children: PhrasingContent[], index?: Map<string, strin
         result.push({ type: 'text', value: value.slice(lastIndex, match.index) });
       }
       const [, rawTarget, fragment, alias] = match;
-      const cleanTarget = rawTarget.replace(/\.md$/, '').trim();
-      const resolved = resolveTarget(rawTarget, index);
-      let href = '/writings/' + resolved;
+      // Keep the raw target verbatim (including any `.md` / path prefix); the
+      // resolution hook normalizes and looks it up against the file tree.
+      const target = rawTarget.trim();
       let heading: string | undefined;
       let blockId: string | undefined;
       if (fragment) {
         if (fragment.startsWith('^')) {
-          blockId = fragment.slice(1);
-          href += '#' + blockId;
+          blockId = fragment.slice(1).trim();
         } else {
-          heading = fragment;
-          href += '#' + slugifyFragment(fragment);
+          heading = fragment.trim();
         }
       }
-      const label = alias?.trim() ?? cleanTarget.split('/').at(-1)!;
       const node: ObsidianWikiLink = {
         type: 'obsidianWikiLink',
-        value: label,
-        target: cleanTarget,
-        ...(alias !== undefined ? { alias } : {}),
+        value: '',
+        target,
+        ...(alias !== undefined ? { alias: alias.trim() } : {}),
         ...(heading !== undefined ? { heading } : {}),
         ...(blockId !== undefined ? { blockId } : {}),
-        data: {
-          hName: 'a',
-          hProperties: { href, className: ['wiki-link'] },
-          hChildren: [{ type: 'text', value: label }],
-        },
       };
       result.push(node);
       lastIndex = match.index + match[0].length;
@@ -77,10 +55,8 @@ function splitOnWikiLinks(children: PhrasingContent[], index?: Map<string, strin
   return result;
 }
 
-export function transformWikiLinks(tree: Root, index?: Map<string, string>): void {
+export function transformWikiLinks(tree: Root): void {
   visit(tree, 'paragraph', (node: Paragraph) => {
-    node.children = splitOnWikiLinks(node.children, index) as Paragraph['children'];
+    node.children = splitOnWikiLinks(node.children) as Paragraph['children'];
   });
 }
-
-export const wikiLinks: Plugin<[], Root> = () => transformWikiLinks;

@@ -1,4 +1,3 @@
-import type { Plugin } from 'unified';
 import type { Root, Paragraph, ListItem } from 'mdast';
 import { visit } from 'unist-util-visit';
 
@@ -16,11 +15,11 @@ function applyBlockId(node: Paragraph | ListItem): void {
   if (!match) return;
 
   lastChild.value = lastChild.value.slice(0, -match[0].length);
-  node.data ??= {};
-  node.data.hProperties = {
-    ...(node.data.hProperties as Record<string, unknown> ?? {}),
-    id: match[1],
-  };
+  // `hProperties` is the mdast-util-to-hast directive carrier; `@types/mdast`'s
+  // per-node `Data` doesn't declare it without importing that package, so stamp
+  // it through a structural cast. The default mdast→hast conversion reads it.
+  const data = (node.data ??= {}) as { hProperties?: Record<string, unknown> };
+  data.hProperties = { ...(data.hProperties ?? {}), id: match[1] };
 }
 
 export function transformBlockLinks(tree: Root): void {
@@ -28,5 +27,3 @@ export function transformBlockLinks(tree: Root): void {
     applyBlockId(node as Paragraph | ListItem);
   });
 }
-
-export const blockLinks: Plugin<[], Root> = () => transformBlockLinks;

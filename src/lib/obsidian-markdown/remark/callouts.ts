@@ -1,4 +1,3 @@
-import type { Plugin } from 'unified';
 import type { Root, Blockquote, RootContent } from 'mdast';
 import { visit, SKIP } from 'unist-util-visit';
 import type { ObsidianCallout } from '../types.ts';
@@ -52,5 +51,3 @@ export function transformCallouts(tree: Root): void {
     return [SKIP, index];
   });
 }
-
-export const callouts: Plugin<[], Root> = () => transformCallouts;

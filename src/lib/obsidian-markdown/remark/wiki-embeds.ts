@@ -1,4 +1,3 @@
-import type { Plugin } from 'unified';
 import type { Root, Paragraph, Image, PhrasingContent, Text } from 'mdast';
 import { visit } from 'unist-util-visit';
 
@@ -26,13 +25,17 @@ function splitOnEmbeds(children: PhrasingContent[]): PhrasingContent[] {
       } else {
         const width = widthStr ? parseInt(widthStr, 10) : undefined;
         const height = heightStr ? parseInt(heightStr, 10) : undefined;
+        // Stamp a `wiki-embed` class (plus optional W×H) via `hProperties` so the
+        // embed `<img>` is distinguishable from a plain Markdown image in HAST,
+        // and so Astro's image collection still sees a relative `image` node.
+        const hProperties: Record<string, unknown> = { className: ['wiki-embed'] };
+        if (width !== undefined) hProperties.width = width;
+        if (height !== undefined) hProperties.height = height;
         const img: Image = {
           type: 'image',
           url: `./attachments/${src}`,
           alt: src,
-          ...(width !== undefined
-            ? { data: { hProperties: { width, ...(height !== undefined ? { height } : {}) } } }
-            : {}),
+          data: { hProperties },
         };
         result.push(img);
       }
@@ -52,5 +55,3 @@ export function transformWikiEmbeds(tree: Root): void {
     node.children = splitOnEmbeds(node.children) as Paragraph['children'];
   });
 }
-
-export const wikiEmbeds: Plugin<[], Root> = () => transformWikiEmbeds;
