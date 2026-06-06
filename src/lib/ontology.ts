@@ -32,6 +32,35 @@ export function slugPath(segments: string[]): string {
 }
 
 /**
+ * The single rule for "is this matched file an article?" A relative POSIX path
+ * (within the collection base) is an article unless any path segment is an
+ * `attachments/` dir, its basename is the `disambiguate.md` marker, or it is not
+ * a Markdown file. Matches the skip logic in {@link classifyTree} and both
+ * loader integrations so they never diverge.
+ */
+export function isArticleFile(relPath: string): boolean {
+  const segments = relPath.split("/");
+  if (segments.includes(ATTACHMENTS_DIR)) return false;
+  const fileName = segments.at(-1) ?? "";
+  if (fileName.toLowerCase() === DISAMBIGUATE_FILE) return false;
+  if (!fileName.toLowerCase().endsWith(".md")) return false;
+  return true;
+}
+
+/**
+ * The single rule for an article file's entry id: strip the trailing `.md` from
+ * the last segment, then {@link slugPath} the segments. Byte-identical to the
+ * loader's `generateIdDefault`, so node paths and resolved hrefs computed from
+ * this match real entry ids exactly.
+ */
+export function entryIdForPath(relPath: string): string {
+  const segments = relPath.split("/");
+  const last = segments.pop() ?? "";
+  segments.push(last.replace(/\.md$/i, ""));
+  return slugPath(segments);
+}
+
+/**
  * Strip a raw tag down to its canonical display target, before slugging.
  *
  * A tag may be a plain string (`NixOS`) or an Obsidian wiki link Obsidian may
@@ -170,7 +199,8 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
       node.hasDisambiguate = true;
       continue;
     }
-    if (fileName.toLowerCase().endsWith(".md")) {
+    // Shared article rule: only Markdown article files become files/nodes.
+    if (isArticleFile(rel)) {
       node.files.push(fileName);
     }
   }

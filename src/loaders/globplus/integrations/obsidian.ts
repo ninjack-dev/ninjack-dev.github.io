@@ -2,7 +2,7 @@ import { slug as githubSlug } from "github-slugger";
 import type { Root as HastRoot } from "hast";
 import type { Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
-import { slugPath } from "../../../lib/ontology.ts";
+import { entryIdForPath, isArticleFile } from "../../../lib/ontology.ts";
 import type {
   ObsidianCallout,
   ObsidianWikiLink,
@@ -11,9 +11,6 @@ import { tokenizeObsidian } from "../../../lib/obsidian-markdown/remark/index.ts
 import { finalizeObsidian } from "../../../lib/obsidian-markdown/rehype/index.ts";
 import type { GlobPlusIntegration } from "../types.ts";
 import "./markdown/index.ts";
-
-const ATTACHMENTS_DIR = "attachments";
-const DISAMBIGUATE_FILE = "disambiguate.md";
 
 /** Strip a trailing `.md` (case-insensitive) and surrounding whitespace. */
 function stripMd(value: string): string {
@@ -29,9 +26,9 @@ function stripMd(value: string): string {
  *  - At `gp:files:resolved` it builds a wiki-link resolution index from the
  *    loader's matched file set, mapping raw targets (by lowercased basename and
  *    by lowercased relative path, both sans `.md`) to canonical entry ids. Ids
- *    are slugged with the same `github-slugger` per-segment protocol the loader's
- *    `generateIdDefault` uses (via {@link slugPath}), so resolved hrefs match
- *    real entry ids exactly.
+ *    are derived through the shared {@link entryIdForPath} rule (same
+ *    `github-slugger` per-segment protocol the loader's `generateIdDefault`
+ *    uses), so resolved hrefs match real entry ids exactly.
  *  - At `gp:markdown:mdast:postProcess` it runs the tokenizers, then resolves
  *    every `obsidianWikiLink` into final `<a>` markup by stamping `data.hName` /
  *    `hProperties` / `hChildren`. Targets resolve to `/writings/<id>`; `#heading`
@@ -125,15 +122,10 @@ export function obsidian(): GlobPlusIntegration {
         byBasename = new Map();
         byRelPath = new Map();
         for (const rel of files) {
-          const segments = rel.split("/");
-          if (segments.includes(ATTACHMENTS_DIR)) continue;
-          const fileName = segments.at(-1)!;
-          if (fileName.toLowerCase() === DISAMBIGUATE_FILE) continue;
-          if (!fileName.toLowerCase().endsWith(".md")) continue;
-
-          const idSegments = [...segments];
-          idSegments[idSegments.length - 1] = stripMd(fileName);
-          const id = slugPath(idSegments);
+          // Shared article rule: only Markdown article files get an id/index.
+          if (!isArticleFile(rel)) continue;
+          const fileName = rel.split("/").at(-1)!;
+          const id = entryIdForPath(rel);
 
           const relKey = stripMd(rel).toLowerCase();
           if (!byRelPath.has(relKey)) byRelPath.set(relKey, id);

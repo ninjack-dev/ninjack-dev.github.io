@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 import {
   classifyTree,
+  entryIdForPath,
   type OntologyNode,
-  slugPath,
   type TreeClassification,
 } from "../../../lib/ontology.ts";
 import type { GlobPlusIntegration } from "../types.ts";
@@ -55,10 +55,7 @@ export function ontology(): GlobPlusIntegration {
         // slug of its full relative path sans `.md`.
         const idToPaths = new Map<string, string[]>();
         for (const rel of classification.coordsByPath.keys()) {
-          const segments = rel.split("/");
-          const last = segments.pop()!;
-          segments.push(last.replace(/\.md$/i, ""));
-          const id = slugPath(segments);
+          const id = entryIdForPath(rel);
           (idToPaths.get(id) ?? idToPaths.set(id, []).get(id)!).push(rel);
         }
         for (const [id, paths] of idToPaths) {
