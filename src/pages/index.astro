@@ -1,12 +1,36 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ProfilePic from '../components/AvatarProfilePic.astro';
 import StatusBar from '../components/StatusBar/StatusBar.astro';
+import { buildOntology, type OntologyNode } from '../lib/ontology.ts';
+import OntologyTree, { type GroupNode } from '../components/OntologyTree.astro';
 
-// TODO: 
+// TODO:
 // - Replace these with the hrefs to their content pages
-// - Add scaffold for submenu entries for Writings categories/subcategories/series
 const menuItems = ["Writings", "Projects", "About"];
+
+// Writings grouping for the menu: categories → subcategories → series, each
+// with a per-group published-article count. In prod only published articles
+// are counted/listed; in dev, everything (so fixtures are visible locally).
+const entries = await getCollection('writings', ({ data }) =>
+  import.meta.env.PROD ? data.published : true,
+);
+const view = buildOntology(entries);
+
+const toGroup = (node: OntologyNode): GroupNode => ({
+  node,
+  count: view.count(node.path),
+  children: view
+    .childrenOf(node.path)
+    .filter((c) => view.count(c.path) > 0)
+    .map(toGroup),
+});
+
+const writingsTree: GroupNode[] = view
+  .childrenOf(null)
+  .filter((n) => view.count(n.path) > 0)
+  .map(toGroup);
 ---
 <!-- Document-level rules must target the <body> rendered by BaseLayout, so
      they can't be scoped to this component. Bundled only on this page. -->
@@ -74,9 +98,14 @@ const menuItems = ["Writings", "Projects", "About"];
   <div class="home-panels">
     <div class="main-menu">
       {menuItems.map((l, i) => {
-        return <div class="main-menu-button">
-          <span class="main-menu-button-index">[{i + 1}]</span>
-          <span class="main-menu-button-label">{l}</span>
+        return <div class="main-menu-group">
+          <div class="main-menu-button">
+            <span class="main-menu-button-index">[{i + 1}]</span>
+            <span class="main-menu-button-label">{l}</span>
+          </div>
+          {l === "Writings" && writingsTree.length > 0 && (
+            <OntologyTree groups={writingsTree} />
+          )}
         </div>
       })}
     </div>
