@@ -2,6 +2,7 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { globplus, markdownHooks } from "./loaders/globplus/index.ts";
+import { ontology } from "./loaders/globplus/integrations/ontology.ts";
 import { syncMeta } from "./sync-meta.ts";
 
 const pattern = ["**/*.md", ...(!import.meta.env.DEV ? ["!**/_*/**"] : [])];
@@ -11,6 +12,7 @@ const writings = defineCollection({
     base: "./src/content/Writings",
     pattern: pattern,
     integrations: [
+      ontology(),
       markdownHooks,
       syncMeta({
         path: './src/content/Writings/meta.json',
@@ -36,7 +38,8 @@ const writings = defineCollection({
   schema: z.object({
     title: z.string().optional(),
     description: z.string().optional(),
-    series: z.string().optional(),
+    category: z.array(z.string()).optional(),
+    series: z.string().nullable().optional(),
     date: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
     tags: z.array(z.string()).optional(),
