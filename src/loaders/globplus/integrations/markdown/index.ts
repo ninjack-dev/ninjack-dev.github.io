@@ -66,79 +66,87 @@ declare global {
  * `new VFile({ path: fileURL, … })` and vfile coerces that URL to an fs path, so
  * `file.path === fileURLToPath(fileURL)` — an identity-safe join key (verified).
  *
- * `markdownHooks` is intended to be registered per-collection. If a single
- * instance is reused across collections that load concurrently, scope this map
- * per-load instead (e.g. via a factory) to avoid cross-collection key clashes.
+ * `markdownHooks` is a per-load factory: each call gets its own closure-scoped
+ * `fileToEntryId` map, so concurrently-loading collections never share keys.
  */
-const fileToEntryId = new Map<string, string>();
 
 /**
- * The `gp:markdown` integration. Add it to a `globplus({ integrations })` list
- * to enable the `gp:markdown:mdast:postProcess` / `gp:markdown:hast:postProcess`
- * hooks for that collection.
+ * The `gp:markdown` integration factory. Call it in a `globplus({ integrations })`
+ * list to enable the `gp:markdown:mdast:postProcess` /
+ * `gp:markdown:hast:postProcess` hooks for that collection. Each invocation
+ * closes over its own per-load path→id map.
  */
-export const markdownHooks: GlobPlusIntegration = {
-  name: "gp:markdown",
-  hooks: {
-    "gp:config:setup": ({ config, logger, integrations }) => {
-      // The two processor-agnostic stage bridges. Each recovers the loader-
-      // computed `id` from `fileToEntryId` keyed by the render VFile's absolute
-      // path (`file.path` == `fileURLToPath(fileURL)`; the id was stashed in
-      // `gp:entry:data`), then dispatches the matching hook on every peer.
-      const bridges: StageBridges = {
-        // MDAST boundary → `gp:markdown:mdast:postProcess`.
-        mdast: async (tree: MdastRoot, file: VFile) => {
-          const id = fileToEntryId.get(file.path) ?? "";
-          await runHook({
-            integrations,
-            hookName: "gp:markdown:mdast:postProcess",
-            logger,
-            params: () => ({ id, tree, file }),
-          });
-        },
-        // HAST boundary → `gp:markdown:hast:postProcess`.
-        hast: async (tree: HastRoot, file: VFile) => {
-          const id = fileToEntryId.get(file.path) ?? "";
-          await runHook({
-            integrations,
-            hookName: "gp:markdown:hast:postProcess",
-            logger,
-            params: () => ({ id, tree, file }),
-          });
-        },
-      };
+export function markdownHooks(): GlobPlusIntegration {
+  /**
+   * Per-load map from a render VFile's absolute fs path to the loader-computed
+   * entry id. Closure-scoped to this factory call, so each collection's hook
+   * set has an isolated map.
+   */
+  const fileToEntryId = new Map<string, string>();
 
-      // Resolve an adapter for the configured processor and build a bridged one.
-      // An unrecognized processor is the accepted error path for now: warn and
-      // leave the config untouched, disabling the `gp:markdown:*` hooks for this
-      // collection.
-      const bridged = bridgeProcessor(config.markdown.processor, bridges);
-      if (!bridged) {
-        const name = config.markdown.processor?.name ?? "none";
-        logger.warn(
-          `Unsupported markdown processor "${name}"; the ` +
-            `gp:markdown:mdast:postProcess / gp:markdown:hast:postProcess hooks ` +
-            `are disabled for this collection. Supported: unified().`,
-        );
-        return;
-      }
+  return {
+    name: "gp:markdown",
+    hooks: {
+      "gp:config:setup": ({ config, logger, integrations }) => {
+        // The two processor-agnostic stage bridges. Each recovers the loader-
+        // computed `id` from `fileToEntryId` keyed by the render VFile's absolute
+        // path (`file.path` == `fileURLToPath(fileURL)`; the id was stashed in
+        // `gp:entry:data`), then dispatches the matching hook on every peer.
+        const bridges: StageBridges = {
+          // MDAST boundary → `gp:markdown:mdast:postProcess`.
+          mdast: async (tree: MdastRoot, file: VFile) => {
+            const id = fileToEntryId.get(file.path) ?? "";
+            await runHook({
+              integrations,
+              hookName: "gp:markdown:mdast:postProcess",
+              logger,
+              params: () => ({ id, tree, file }),
+            });
+          },
+          // HAST boundary → `gp:markdown:hast:postProcess`.
+          hast: async (tree: HastRoot, file: VFile) => {
+            const id = fileToEntryId.get(file.path) ?? "";
+            await runHook({
+              integrations,
+              hookName: "gp:markdown:hast:postProcess",
+              logger,
+              params: () => ({ id, tree, file }),
+            });
+          },
+        };
 
-      // Reassign the whole `markdown` branch on the cloned, per-collection
-      // config. The global config (and the other collections sharing it) keep
-      // their original processor.
-      config.markdown = { ...config.markdown, processor: bridged };
+        // Resolve an adapter for the configured processor and build a bridged
+        // one. An unrecognized processor is the accepted error path for now:
+        // warn and leave the config untouched, disabling the `gp:markdown:*`
+        // hooks for this collection.
+        const bridged = bridgeProcessor(config.markdown.processor, bridges);
+        if (!bridged) {
+          const name = config.markdown.processor?.name ?? "none";
+          logger.warn(
+            `Unsupported markdown processor "${name}"; the ` +
+              `gp:markdown:mdast:postProcess / gp:markdown:hast:postProcess hooks ` +
+              `are disabled for this collection. Supported: unified().`,
+          );
+          return;
+        }
+
+        // Reassign the whole `markdown` branch on the cloned, per-collection
+        // config. The global config (and the other collections sharing it) keep
+        // their original processor.
+        config.markdown = { ...config.markdown, processor: bridged };
+      },
+
+      // Reset the per-load path→id map at the start of every load. Setup is
+      // memoized (runs once), so the map can't be reset there.
+      "gp:files:resolved": () => {
+        fileToEntryId.clear();
+      },
+
+      // Capture the loader-computed id keyed by the entry's absolute fs path, so
+      // the bridges can recover it via `file.path` during render.
+      "gp:entry:data": ({ id, fileURL }) => {
+        fileToEntryId.set(fileURLToPath(fileURL), id);
+      },
     },
-
-    // Reset the per-load path→id map at the start of every load. Setup is
-    // memoized (runs once), so the map can't be reset there.
-    "gp:files:resolved": () => {
-      fileToEntryId.clear();
-    },
-
-    // Capture the loader-computed id keyed by the entry's absolute fs path, so
-    // the bridges can recover it via `file.path` during render.
-    "gp:entry:data": ({ id, fileURL }) => {
-      fileToEntryId.set(fileURLToPath(fileURL), id);
-    },
-  },
-};
+  };
+}

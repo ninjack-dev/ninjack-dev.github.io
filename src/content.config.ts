@@ -14,7 +14,7 @@ const writings = defineCollection({
     pattern: pattern,
     integrations: [
       ontology(),
-      markdownHooks,
+      markdownHooks(),
       obsidian(),
       syncMeta({
         path: './src/content/Writings/meta.json',
