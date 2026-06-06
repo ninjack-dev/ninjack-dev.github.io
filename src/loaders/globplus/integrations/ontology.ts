@@ -3,6 +3,7 @@ import {
   classifyTree,
   entryIdForPath,
   type OntologyNode,
+  publishNodes,
   type TreeClassification,
 } from "../../../lib/ontology.ts";
 import type { GlobPlusIntegration } from "../types.ts";
@@ -39,6 +40,7 @@ export function ontology(): GlobPlusIntegration {
       "gp:files:resolved": ({ base, files }) => {
         const classification: TreeClassification = classifyTree(files);
         nodes = classification.nodes;
+        publishNodes(classification.nodes);
 
         byPath = new Map();
         const baseFs = fileURLToPath(base);

@@ -1,5 +1,5 @@
 import { slug as githubSlug } from "github-slugger";
-import type { CollectionEntry } from "astro:content";
+import { type CollectionEntry, getCollection } from "astro:content";
 
 /**
  * Shared content-ontology logic for the `Writings` collection.
@@ -330,6 +330,20 @@ export function buildOntology(entries: WritingEntry[]): OntologyView {
     }
   }
 
+  return makeView(nodes, entries);
+}
+
+/**
+ * Assemble an {@link OntologyView} from an authoritative node set and the
+ * publish-filtered entries. The node set is the source of truth for taxonomy
+ * structure; `entries` supplies the articles whose counts/listings the view
+ * reflects. Shared by {@link buildOntology} (node set reconstructed from
+ * entries) and {@link getOntology} (node set from the in-memory store).
+ */
+function makeView(
+  nodes: Map<string, OntologyNode>,
+  entries: WritingEntry[],
+): OntologyView {
   const nodePaths = new Set(nodes.keys());
 
   const isDescription = (entry: WritingEntry): boolean => {
@@ -372,4 +386,54 @@ export function buildOntology(entries: WritingEntry[]): OntologyView {
     childrenOf,
     articlesOf,
   };
+}
+
+// ---------------------------------------------------------------------------
+// In-memory ontology store: the loader publishes the authoritative node set,
+// pages read it back through getOntology(). Keyed on a global symbol so it
+// survives module-instance duplication across the loader/page graphs.
+// ---------------------------------------------------------------------------
+
+const STORE_KEY = Symbol.for("ninjack.ontology");
+
+interface OntologyStore {
+  nodes: Map<string, OntologyNode>;
+}
+
+type StoreHost = typeof globalThis & {
+  [STORE_KEY]?: OntologyStore;
+};
+
+function store(): StoreHost {
+  return globalThis as StoreHost;
+}
+
+/** Memoized view, cleared by {@link publishNodes} on each (re)publish. */
+let cachedView: OntologyView | null = null;
+
+/**
+ * Publish the authoritative ontology node set (computed by the loader's
+ * `classifyTree`) into the global store and invalidate the memoized view, so the
+ * next {@link getOntology} rebuilds from the fresh node set.
+ */
+export function publishNodes(nodes: Map<string, OntologyNode>): void {
+  store()[STORE_KEY] = { nodes };
+  cachedView = null;
+}
+
+/**
+ * The single page-side accessor for the ontology view. Reads the published node
+ * set from the global store (empty if none published) and pairs it with the
+ * publish-filtered `Writings` entries — full set in dev, `published`-only in
+ * prod. The result is memoized; {@link publishNodes} clears the memo so a dev
+ * reload re-publishes and the next call rebuilds.
+ */
+export async function getOntology(): Promise<OntologyView> {
+  if (cachedView) return cachedView;
+  const livePredicate = ({ data }: WritingEntry) =>
+    import.meta.env.PROD ? data.published : true;
+  const entries = await getCollection("writings", livePredicate);
+  const storeNodes = store()[STORE_KEY]?.nodes ?? new Map<string, OntologyNode>();
+  cachedView = makeView(storeNodes, entries);
+  return cachedView;
 }
