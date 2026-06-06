@@ -2,6 +2,7 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { globplus, markdownHooks } from "./loaders/globplus/index.ts";
+import { obsidian } from "./loaders/globplus/integrations/obsidian.ts";
 import { ontology } from "./loaders/globplus/integrations/ontology.ts";
 import { syncMeta } from "./sync-meta.ts";
 
@@ -14,6 +15,7 @@ const writings = defineCollection({
     integrations: [
       ontology(),
       markdownHooks,
+      obsidian(),
       syncMeta({
         path: './src/content/Writings/meta.json',
         whitelist: [

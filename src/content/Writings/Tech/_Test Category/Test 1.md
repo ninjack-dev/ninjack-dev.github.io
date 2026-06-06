@@ -22,6 +22,12 @@ Link to a block within a section: [[Test 2#^lorem-intro]]
 
 Link to a list item block: [[Test 2#^list-item-block]]
 
+Path-prefixed link: [[Test Series/Episode 1]]
+
+Path-prefixed link with alias: [[Subcat/Loose In Subcat|loose one]]
+
+Broken link (no such note): [[Nonexistent Note]]
+
 ## Embeds
 
 Normal embed:
