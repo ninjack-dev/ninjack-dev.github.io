@@ -1,44 +1,71 @@
 ---
 import { getCollection, getEntry, render } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+  buildOntology,
+  displayTag,
+  normalizeTag,
+} from "../../lib/ontology.ts";
 
 export async function getStaticPaths() {
   const definedTags = await getCollection("tags");
-  const allPosts = await getCollection("writings", ({ data }) =>
+  // In prod, list only published articles; in dev, everything.
+  const entries = await getCollection("writings", ({ data }) =>
     import.meta.env.PROD ? data.published : true,
   );
 
-  const uniqueTags = [
-    ...new Set(allPosts.map((post) => post.data.tags ?? []).flat()),
-  ];
+  // Real articles only — exclude series-description entries.
+  const view = buildOntology(entries);
+  const articles = view.articles.filter((e) => !view.isDescription(e));
 
-  return uniqueTags.map((tag) => {
-    const postsWithTag = allPosts.filter((post) =>
-      post.data.tags?.includes(tag),
-    );
-    const tagDef = definedTags.find((tagDef) => tagDef.id == tag.toLowerCase());
+  // Group articles by normalized tag slug; remember a display label per slug.
+  const bySlug = new Map<
+    string,
+    { label: string; posts: typeof articles }
+  >();
+  for (const post of articles) {
+    for (const raw of post.data.tags ?? []) {
+      const slug = normalizeTag(raw);
+      if (!slug) continue;
+      let bucket = bySlug.get(slug);
+      if (!bucket) {
+        bucket = { label: displayTag(raw), posts: [] };
+        bySlug.set(slug, bucket);
+      }
+      if (!bucket.posts.includes(post)) bucket.posts.push(post);
+    }
+  }
+
+  return [...bySlug.entries()].map(([slug, { label, posts }]) => {
+    const tagDef = definedTags.find((t) => t.id === slug);
     return {
-      params: { tag },
-      props: { tagId: tagDef?.id, posts: postsWithTag },
+      params: { tag: slug },
+      props: {
+        tagId: tagDef?.id,
+        label,
+        posts: posts.map((p) => ({
+          id: p.id,
+          title: p.data.title ?? p.id,
+        })),
+      },
     };
   });
 }
 
-const { tag } = Astro.params;
-const { tagId, posts } = Astro.props;
-const Content = tagId
-  ? (await render((await getEntry("tags", tagId))!)).Content
-  : undefined;
+const { tagId, label, posts } = Astro.props;
+const tagEntry = tagId ? await getEntry("tags", tagId) : undefined;
+const Content = tagEntry ? (await render(tagEntry)).Content : undefined;
+const heading = label ?? Astro.params.tag;
 ---
 
-<BaseLayout title={tag}>
-  <h1>{tag}</h1>
+<BaseLayout title={heading}>
+  <h1>{heading}</h1>
   {Content && <Content />}
   <ul>
     {
       posts.map((post) => (
         <li>
-          <a href={`/writings/${post.id}`}>{post.data.title ?? post.id}</a>
+          <a href={`/writings/${post.id}`}>{post.title}</a>
         </li>
       ))
     }
