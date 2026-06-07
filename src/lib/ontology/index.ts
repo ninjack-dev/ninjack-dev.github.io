@@ -1,6 +1,8 @@
 import { slug as githubSlug } from "github-slugger";
 import { type CollectionEntry, getCollection } from "astro:content";
 
+export { ontology } from "./integration.ts"
+
 /**
  * Shared content-ontology logic for the `Writings` collection.
  *

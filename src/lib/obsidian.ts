@@ -2,15 +2,15 @@ import { slug as githubSlug } from "github-slugger";
 import type { Root as HastRoot } from "hast";
 import type { Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
-import { entryIdForPath, isArticleFile } from "../../../lib/ontology.ts";
+import { entryIdForPath, isArticleFile } from "./ontology/index.ts";
 import type {
   ObsidianCallout,
   ObsidianWikiLink,
-} from "../../../lib/obsidian-markdown/types.ts";
-import { tokenizeObsidian } from "../../../lib/obsidian-markdown/remark/index.ts";
-import { finalizeObsidian } from "../../../lib/obsidian-markdown/rehype/index.ts";
-import type { GlobPlusIntegration } from "../types.ts";
-import "./markdown/index.ts";
+} from "./obsidian-markdown/types.ts";
+import { tokenizeObsidian } from "./obsidian-markdown/remark/index.ts";
+import { finalizeObsidian } from "./obsidian-markdown/rehype/index.ts";
+import type { GlobPlusIntegration } from "../loaders/globplus/types.ts";
+import "../loaders/globplus/integrations/markdown/index.ts";
 
 /** Strip a trailing `.md` (case-insensitive) and surrounding whitespace. */
 function stripMd(value: string): string {

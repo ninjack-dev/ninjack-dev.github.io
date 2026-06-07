@@ -3,8 +3,8 @@ import { join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "astro/zod";
 import type { Nodes, Root } from "mdast";
-import type { GlobPlusIntegration } from "./loaders/globplus/index.ts";
-import "./loaders/globplus/integrations/markdown/index.ts";
+import type { GlobPlusIntegration } from "../loaders/globplus/index.ts";
+import "../loaders/globplus/integrations/markdown/index.ts";
 
 export type NodeTypes = Nodes["type"];
 

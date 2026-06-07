@@ -2,9 +2,9 @@ import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
 import { globplus, markdownHooks } from "./loaders/globplus/index.ts";
-import { obsidian } from "./loaders/globplus/integrations/obsidian.ts";
-import { ontology } from "./loaders/globplus/integrations/ontology.ts";
-import { syncMeta } from "./sync-meta.ts";
+import { obsidian } from "./lib/obsidian.ts";
+import { ontology } from "./lib/ontology/index.ts";
+import { syncMeta } from "./lib/sync-meta.ts";
 
 const pattern = ["**/*.md", ...(!import.meta.env.DEV ? ["!**/_*/**", "!**/_*"] : [])];
 

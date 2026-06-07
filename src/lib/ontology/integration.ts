@@ -5,8 +5,8 @@ import {
   type OntologyNode,
   publishNodes,
   type TreeClassification,
-} from "../../../lib/ontology.ts";
-import type { GlobPlusIntegration } from "../types.ts";
+} from "./index.ts";
+import type { GlobPlusIntegration } from "../../loaders/globplus/types.ts";
 
 /**
  * `ontology` — a globplus integration that derives the `Writings` taxonomy from
