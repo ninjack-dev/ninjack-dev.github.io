@@ -132,6 +132,11 @@ export interface BaseIntegrationHooks {
     base: URL;
     /** Matched files, relative to `base`. */
     files: string[];
+    /**
+     * The directory tree built from the matched files. FileNode ids are still
+     * empty at this point (resolved later in `syncData`); derive ids from paths.
+     */
+    tree: DirNode;
   }) => void | Promise<void>;
 
   /** Runs per file, after default id generation. Return a string to override. */

@@ -394,6 +394,7 @@ export function globplus(options: GlobPlusOptions): Loader {
         params: () => ({
           base: baseDir,
           files: entryFiles,
+          tree: treeRef.current,
         }),
       });
 
