@@ -330,21 +330,46 @@ function makeView(
     return display.length ? slugPath(display) : null;
   };
 
+  // Build the membership indexes in one pass over `articles`, so each closure
+  // below is a map read instead of a re-scan/re-slug of the whole article set.
+  const directArticles = new Map<string, WritingEntry[]>();
+  const countByPath = new Map<string, number>();
+  for (const entry of articles) {
+    const ip = immediateNodePath(entry);
+    if (ip === null) continue;
+    // Direct membership: bucket the entry under its immediate node path.
+    (directArticles.get(ip) ?? directArticles.set(ip, []).get(ip)!).push(entry);
+    // Recursive counts: every `/`-boundary prefix of `ip` (including `ip`
+    // itself) gets +1. This reproduces the membership rule exactly — a node
+    // path counts an article iff `ip === path || ip.startsWith(path + "/")`,
+    // which is precisely the set of `ip`'s prefixes at slash boundaries.
+    const segments = ip.split("/");
+    let prefix = "";
+    for (const segment of segments) {
+      prefix = prefix ? `${prefix}/${segment}` : segment;
+      countByPath.set(prefix, (countByPath.get(prefix) ?? 0) + 1);
+    }
+  }
+
+  // Group nodes by parent once, sorted by name (matching the prior order).
+  const childrenByParent = new Map<string | null, OntologyNode[]>();
+  for (const node of nodes.values()) {
+    (childrenByParent.get(node.parent) ??
+      childrenByParent.set(node.parent, []).get(node.parent)!).push(node);
+  }
+  for (const bucket of childrenByParent.values()) {
+    bucket.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   const articlesOf = (nodePath: string): WritingEntry[] =>
-    articles.filter((e) => immediateNodePath(e) === nodePath);
+    directArticles.get(nodePath) ?? [];
 
   // Recursive published-article count: articles whose immediate node path is
   // this node or descends from it (prefix match on `path/`).
-  const count = (nodePath: string): number =>
-    articles.filter((e) => {
-      const ip = immediateNodePath(e);
-      return ip === nodePath || (ip !== null && ip.startsWith(`${nodePath}/`));
-    }).length;
+  const count = (nodePath: string): number => countByPath.get(nodePath) ?? 0;
 
   const childrenOf = (nodePath: string | null): OntologyNode[] =>
-    [...nodes.values()]
-      .filter((n) => n.parent === nodePath)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    childrenByParent.get(nodePath) ?? [];
 
   return {
     nodes,
