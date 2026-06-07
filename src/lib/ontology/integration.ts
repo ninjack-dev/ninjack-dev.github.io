@@ -1,7 +1,6 @@
-import { fileURLToPath } from "node:url";
 import {
+  type ArticleCoords,
   classifyTree,
-  entryIdForPath,
   type OntologyNode,
   publishNodes,
   type TreeClassification,
@@ -15,12 +14,12 @@ import type { GlobPlusIntegration } from "../../loaders/globplus/types.ts";
  * Hook design:
  *  - `gp:files:resolved` (whole-tree view): classify the full matched file set
  *    with {@link classifyTree}. Per-file hooks can't see siblings, so all
- *    classification happens here and is cached in `byPath` (keyed by absolute
- *    fs path) for the per-file `gp:entry:data` lookup. Also caches the node set
- *    for the end-of-load guard.
+ *    classification happens here and is cached in `coordsById` (keyed by entry
+ *    id) for the per-file `gp:entry:data` lookup. Also caches the node set for
+ *    the end-of-load guard.
  *  - `gp:entry:data` (per file, before Zod parse): look the file up by its
- *    absolute path and stamp `data.category` (display-name path) and
- *    `data.series` (display name or `null`) onto the raw frontmatter.
+ *    entry id and stamp `data.category` (display-name path) and `data.series`
+ *    (display name or `null`) onto the raw frontmatter.
  *  - `gp:load:done`: build-error guard (ADR 0002) — an entry id equal to a
  *    *category* node path is illegal (categories have no description); a match
  *    on a *series* node path is a valid series description.
@@ -29,51 +28,23 @@ import type { GlobPlusIntegration } from "../../loaders/globplus/types.ts";
  * dirs and `disambiguate.md` markers (handled inside `classifyTree`).
  */
 export function ontology(): GlobPlusIntegration {
-  // Absolute fs path → article coordinates, rebuilt each load.
-  let byPath = new Map<string, { category: string[]; series: string | null }>();
+  // Entry id → article coordinates, rebuilt each load.
+  let coordsById = new Map<string, ArticleCoords>();
   // Node-path → node, rebuilt each load (for the build-error guard).
   let nodes = new Map<string, OntologyNode>();
 
   return {
     name: "gp:ontology",
     hooks: {
-      "gp:files:resolved": ({ base, files }) => {
+      "gp:files:resolved": ({ files }) => {
         const classification: TreeClassification = classifyTree(files);
         nodes = classification.nodes;
+        coordsById = classification.coordsById;
         publishNodes(classification.nodes);
-
-        byPath = new Map();
-        const baseFs = fileURLToPath(base);
-        for (const [rel, coords] of classification.coordsByPath) {
-          const abs = fileURLToPath(new URL(encodeURI(rel), base));
-          byPath.set(abs, coords);
-          // Guard against URL-encoding mismatches by also keying the plain join.
-          byPath.set(`${baseFs}${rel}`, coords);
-        }
-
-        // Build-error guard (ADR 0002): article-id collisions. The loader only
-        // *warns* and overwrites on duplicate ids, so detect them here over the
-        // full file set, where every sibling is visible. An article's id is the
-        // slug of its full relative path sans `.md`.
-        const idToPaths = new Map<string, string[]>();
-        for (const rel of classification.coordsByPath.keys()) {
-          const id = entryIdForPath(rel);
-          (idToPaths.get(id) ?? idToPaths.set(id, []).get(id)!).push(rel);
-        }
-        for (const [id, paths] of idToPaths) {
-          if (paths.length > 1) {
-            throw new Error(
-              `[gp:ontology] Duplicate entry id "${id}" from sibling files: ` +
-                `${paths.join(", ")}. Ids (slugged hierarchical paths) must be ` +
-                `unique; rename one of these files.`,
-            );
-          }
-        }
       },
 
-      "gp:entry:data": ({ fileURL, data }) => {
-        const abs = fileURLToPath(fileURL);
-        const coords = byPath.get(abs);
+      "gp:entry:data": ({ id, data }) => {
+        const coords = coordsById.get(id);
         if (!coords) {
           // Loose Markdown at the Writings root (forbidden, but degrade
           // gracefully): no category, no series.

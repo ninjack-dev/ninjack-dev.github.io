@@ -121,12 +121,12 @@ export interface ArticleCoords {
 
 /**
  * Result of classifying the full file set: per-file coordinates keyed by the
- * file's relative POSIX path, plus the set of directory nodes (categories and
- * series) keyed by their slugged node path.
+ * file's entry id, plus the set of directory nodes (categories and series)
+ * keyed by their slugged node path.
  */
 export interface TreeClassification {
-  /** Coordinates per Markdown file, keyed by relative POSIX path. */
-  coordsByPath: Map<string, ArticleCoords>;
+  /** Coordinates per Markdown file, keyed by entry id. */
+  coordsById: Map<string, ArticleCoords>;
   /** Directory nodes keyed by slugged node path. */
   nodes: Map<string, OntologyNode>;
 }
@@ -208,9 +208,24 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
   }
 
   const nodes = new Map<string, OntologyNode>();
-  const coordsByPath = new Map<string, ArticleCoords>();
+  const coordsById = new Map<string, ArticleCoords>();
+  // Build-error guard (ADR 0002): an article's id is the slug of its full
+  // relative path sans `.md`. The loader only *warns* and overwrites on
+  // duplicate ids, so detect them here over the full file set, where every
+  // sibling is visible. Tracks the source paths per id to report collisions.
+  const idToPaths = new Map<string, string[]>();
 
   walk(root, []);
+
+  for (const [id, paths] of idToPaths) {
+    if (paths.length > 1) {
+      throw new Error(
+        `[gp:ontology] Duplicate entry id "${id}" from sibling files: ` +
+          `${paths.join(", ")}. Ids (slugged hierarchical paths) must be ` +
+          `unique; rename one of these files.`,
+      );
+    }
+  }
 
   // Walk the tree, carrying the running category display path. A node's parent
   // is the slug of the current category path (its enclosing categories), since
@@ -246,7 +261,9 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
 
     for (const file of dir.files) {
       const rel = [...dir.segments, file].join("/");
-      coordsByPath.set(rel, {
+      const id = entryIdForPath(rel);
+      (idToPaths.get(id) ?? idToPaths.set(id, []).get(id)!).push(rel);
+      coordsById.set(id, {
         category: nodeCategoryPath,
         series: dirIsSeries ? dir.segments.at(-1)! : null,
       });
@@ -258,7 +275,7 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
     }
   }
 
-  return { coordsByPath, nodes };
+  return { coordsById, nodes };
 }
 
 // ---------------------------------------------------------------------------
