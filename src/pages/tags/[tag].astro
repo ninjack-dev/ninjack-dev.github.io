@@ -2,7 +2,8 @@
 import { getCollection, getEntry, render } from "astro:content";
 import { slug as githubSlug } from "github-slugger";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getOntology, displayTag, normalizeTag } from "../../lib/ontology/index.ts";
+import { getOntology } from "../../lib/ontology/index.ts";
+import { displayTag, normalizeTag } from "../../lib/tags.ts";
 
 export async function getStaticPaths() {
   const definedTags = await getCollection("tags");
