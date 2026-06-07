@@ -1,5 +1,6 @@
 import { slug as githubSlug } from "github-slugger";
 import { type CollectionEntry, getCollection } from "astro:content";
+import type { DirNode, FileNode } from "../../loaders/globplus/index.ts";
 
 export { ontology } from "./integration.ts"
 
@@ -144,19 +145,14 @@ export interface OntologyNode {
   parent: string | null;
 }
 
-interface RawDir {
-  /** Display-name segments from the loader base to this dir. */
-  segments: string[];
-  /** Child directory display names → RawDir. */
-  dirs: Map<string, RawDir>;
-  /** Markdown file display names directly in this dir. */
-  files: string[];
-  /** Whether a `disambiguate.md` marker sits in this dir. */
-  hasDisambiguate: boolean;
+/** The display-name basename of a {@link FileNode} (last URL path segment). */
+function fileName(file: FileNode): string {
+  return decodeURIComponent(file.url.pathname.split("/").at(-1) ?? "");
 }
 
-function newRawDir(segments: string[]): RawDir {
-  return { segments, dirs: new Map(), files: [], hasDisambiguate: false };
+/** Display-name segments from the loader base to `dir` (`[]` for the root). */
+function dirSegments(dir: DirNode): string[] {
+  return dir.relativeDir === "" ? [] : dir.relativeDir.split("/");
 }
 
 /**
@@ -165,8 +161,10 @@ function newRawDir(segments: string[]): RawDir {
  * Markdown files, no qualifying subdir) it is a SERIES. The loader base itself
  * is never a node.
  */
-function isCategory(dir: RawDir): boolean {
-  if (dir.hasDisambiguate) return true;
+function isCategory(dir: DirNode): boolean {
+  for (const file of dir.files) {
+    if (fileName(file).toLowerCase() === DISAMBIGUATE_FILE) return true;
+  }
   for (const name of dir.dirs.keys()) {
     if (name !== ATTACHMENTS_DIR) return true;
   }
@@ -174,39 +172,12 @@ function isCategory(dir: RawDir): boolean {
 }
 
 /**
- * Classify the full set of matched Markdown files (relative POSIX paths with
- * on-disk casing). `attachments/` dirs and `disambiguate.md` markers never
- * become articles or nodes.
+ * Classify the loader's directory tree ({@link DirNode}, markdown-only since the
+ * glob is `**\/*.md`). `attachments/` dirs and `disambiguate.md` markers never
+ * become articles or nodes. FileNode ids are still empty at classification time,
+ * so article ids are derived from the path via {@link entryIdForPath}.
  */
-export function classifyTree(relativePaths: string[]): TreeClassification {
-  const root = newRawDir([]);
-
-  // Build a raw display-name tree.
-  for (const rel of relativePaths) {
-    const parts = rel.split("/");
-    const fileName = parts.pop()!;
-    let node = root;
-    let underAttachments = false;
-    for (const segment of parts) {
-      if (segment === ATTACHMENTS_DIR) underAttachments = true;
-      let child = node.dirs.get(segment);
-      if (!child) {
-        child = newRawDir([...node.segments, segment]);
-        node.dirs.set(segment, child);
-      }
-      node = child;
-    }
-    if (underAttachments) continue; // attachments are never files/nodes
-    if (fileName.toLowerCase() === DISAMBIGUATE_FILE) {
-      node.hasDisambiguate = true;
-      continue;
-    }
-    // Shared article rule: only Markdown article files become files/nodes.
-    if (isArticleFile(rel)) {
-      node.files.push(fileName);
-    }
-  }
-
+export function classifyTree(tree: DirNode): TreeClassification {
   const nodes = new Map<string, OntologyNode>();
   const coordsById = new Map<string, ArticleCoords>();
   // Build-error guard (ADR 0002): an article's id is the slug of its full
@@ -215,7 +186,7 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
   // sibling is visible. Tracks the source paths per id to report collisions.
   const idToPaths = new Map<string, string[]>();
 
-  walk(root, []);
+  walk(tree, []);
 
   for (const [id, paths] of idToPaths) {
     if (paths.length > 1) {
@@ -230,21 +201,22 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
   // Walk the tree, carrying the running category display path. A node's parent
   // is the slug of the current category path (its enclosing categories), since
   // a series is always a leaf and categories nest only inside categories.
-  function walk(dir: RawDir, categoryPath: string[]) {
-    const isRoot = dir.segments.length === 0;
+  function walk(dir: DirNode, categoryPath: string[]) {
+    const segments = dirSegments(dir);
+    const isRoot = segments.length === 0;
     let nodeCategoryPath = categoryPath;
     let dirIsSeries = false;
 
     if (!isRoot) {
-      const slugged = slugPath(dir.segments);
+      const slugged = slugPath(segments);
       const parent = categoryPath.length ? slugPath(categoryPath) : null;
       if (isCategory(dir)) {
-        nodeCategoryPath = [...categoryPath, dir.segments.at(-1)!];
+        nodeCategoryPath = [...categoryPath, segments.at(-1)!];
         nodes.set(slugged, {
           kind: "category",
           path: slugged,
-          displayPath: dir.segments,
-          name: dir.segments.at(-1)!,
+          displayPath: segments,
+          name: segments.at(-1)!,
           parent,
         });
       } else {
@@ -252,20 +224,22 @@ export function classifyTree(relativePaths: string[]): TreeClassification {
         nodes.set(slugged, {
           kind: "series",
           path: slugged,
-          displayPath: dir.segments,
-          name: dir.segments.at(-1)!,
+          displayPath: segments,
+          name: segments.at(-1)!,
           parent,
         });
       }
     }
 
     for (const file of dir.files) {
-      const rel = [...dir.segments, file].join("/");
+      const rel = [...segments, fileName(file)].join("/");
+      // Shared article rule: skip `attachments/`, `disambiguate.md`, non-`.md`.
+      if (!isArticleFile(rel)) continue;
       const id = entryIdForPath(rel);
       (idToPaths.get(id) ?? idToPaths.set(id, []).get(id)!).push(rel);
       coordsById.set(id, {
         category: nodeCategoryPath,
-        series: dirIsSeries ? dir.segments.at(-1)! : null,
+        series: dirIsSeries ? segments.at(-1)! : null,
       });
     }
 

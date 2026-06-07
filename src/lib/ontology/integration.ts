@@ -36,8 +36,8 @@ export function ontology(): GlobPlusIntegration {
   return {
     name: "gp:ontology",
     hooks: {
-      "gp:files:resolved": ({ files }) => {
-        const classification: TreeClassification = classifyTree(files);
+      "gp:files:resolved": ({ tree }) => {
+        const classification: TreeClassification = classifyTree(tree);
         nodes = classification.nodes;
         coordsById = classification.coordsById;
         publishNodes(classification.nodes);
