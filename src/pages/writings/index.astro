@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getOntology } from "../../lib/ontology.ts";
+import { getOntology } from "../../lib/ontology/index.ts";
 
 // Shared, publish-filtered ontology view (prod: published only; dev: all).
 const view = await getOntology();
