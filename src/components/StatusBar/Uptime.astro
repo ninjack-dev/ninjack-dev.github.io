@@ -21,15 +21,14 @@ const built = Date.now() - (Math.random() * (max - min) + min);
 
   .uptime-root {
     display: flex;
-    gap: 6px;
+    gap: 0.75em;
   }
 
   /* The animation must live on the same element as the counter it drives:
      supposedly, generated content (`counter()` in ::after) is only re-resolved when that
      element's own style is invalidated, which an ancestor's animated custom property does NOT do. */
   .segment {
-    font-size: 20px;
-    margin-right: 10px;
+    font-size: 1em;
     animation: tick 3153600000s linear var(--uptime-delay, 0s) infinite;
     &::before {
       padding-right: 0.2em;
