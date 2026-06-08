@@ -1,6 +1,7 @@
 ---
 import { getEntry, render } from "astro:content";
 import type { GetStaticPaths } from "astro";
+import Giscus from "../../components/Giscus.astro"
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getOntology } from "../../lib/ontology/index.ts";
 import "../../styles/prose.css";
@@ -58,6 +59,7 @@ const view = await getOntology();
               <blockquote>{entry.data.description}</blockquote>
             )}
             <Content />
+            <Giscus />
           </main>
         </BaseLayout>
       );
@@ -111,8 +113,8 @@ const view = await getOntology();
                 <ul>
                   {subcategories.map((c) => (
                     <li>
-                      <a href={`/writings/${c.path}`}>{c.name}</a>{" "}
-                      ({view.count(c.path)})
+                      <a href={`/writings/${c.path}`}>{c.name}</a> (
+                      {view.count(c.path)})
                     </li>
                   ))}
                 </ul>
@@ -124,8 +126,8 @@ const view = await getOntology();
                 <ul>
                   {seriesNodes.map((c) => (
                     <li>
-                      <a href={`/writings/${c.path}`}>{c.name}</a>{" "}
-                      ({view.count(c.path)})
+                      <a href={`/writings/${c.path}`}>{c.name}</a> (
+                      {view.count(c.path)})
                     </li>
                   ))}
                 </ul>
