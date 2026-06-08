@@ -1,0 +1,13 @@
+---
+import { execSync } from "node:child_process";
+
+const HASH = execSync("git rev-parse HEAD").toString().trim();
+const SHORT = HASH.slice(0, 6);
+
+const ORIGIN = new URL(execSync("git remote get-url origin").toString().trim());
+const COMMIT_URL = ORIGIN + `/commit/${HASH}`;
+---
+
+<span>
+  <a href={COMMIT_URL}>{SHORT}</a>
+</span>
