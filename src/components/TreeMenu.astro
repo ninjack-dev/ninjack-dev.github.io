@@ -47,41 +47,77 @@ if (explicitItems) {
   ];
 }
 
-const treeContent = items.map((item, i) => {
-  const path = [...parentPath, i];
-  const pathStr = path.join(',');
-  const segs = path.map((n) => n + 1);
-  const sigil = segs.join('.');
-  const visibleClass = depth === 0 ? ' visible' : '';
-
-  return (
-    <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
-      <div class="menu-item-label">
-        <span class="sigil">[{sigil}]</span>
-        {
-          item.href
-            ? <a href={item.href} class="label">{item.label}</a>
-            : <span class="label">{item.label}</span>
-        }
-        {
-          item.count != null && item.count > 0 &&
-          <span class="count">({item.count})</span>
-        }
-      </div>
-      {
-        item.children.length > 0 &&
-        <div class="children-wrap">
-          <div class="children">
-            <Astro.self items={item.children} parentPath={path} />
-          </div>
-        </div>
-      }
-    </div>
-  );
-});
 ---
 
-{isRoot ? <div class="tree-menu-root" data-items={JSON.stringify(items)}>{treeContent}</div> : treeContent}
+{isRoot ? (
+  <div class="tree-menu-root" data-items={JSON.stringify(items)}>
+    {items.map((item, i) => {
+      const path = [...parentPath, i];
+      const pathStr = path.join(',');
+      const segs = path.map((n) => n + 1);
+      const sigil = segs.join('.');
+      const visibleClass = depth === 0 ? ' visible' : '';
+
+      return (
+        <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
+          <div class="menu-item-label">
+            <span class="sigil">[{sigil}]</span>
+            {
+              item.href
+                ? <a href={item.href} class="label">{item.label}</a>
+                : <span class="label">{item.label}</span>
+            }
+            {
+              item.count != null && item.count > 0 &&
+              <span class="count">({item.count})</span>
+            }
+          </div>
+          {
+            item.children.length > 0 &&
+            <div class="children-wrap">
+              <div class="children">
+                <Astro.self items={item.children} parentPath={path} />
+              </div>
+            </div>
+          }
+        </div>
+      );
+    })}
+  </div>
+) : (
+  items.map((item, i) => {
+    const path = [...parentPath, i];
+    const pathStr = path.join(',');
+    const segs = path.map((n) => n + 1);
+    const sigil = segs.join('.');
+    const visibleClass = depth === 0 ? ' visible' : '';
+
+    return (
+      <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
+        <div class="menu-item-label">
+          <span class="sigil">[{sigil}]</span>
+          {
+            item.href
+              ? <a href={item.href} class="label">{item.label}</a>
+              : <span class="label">{item.label}</span>
+          }
+          {
+            item.count != null && item.count > 0 &&
+            <span class="count">({item.count})</span>
+          }
+        </div>
+        {
+          item.children.length > 0 &&
+          <div class="children-wrap">
+            <div class="children">
+              <Astro.self items={item.children} parentPath={path} />
+            </div>
+          </div>
+        }
+      </div>
+    );
+  })
+)}
 
 <!--
   Global styles for the tree-menu widget.
