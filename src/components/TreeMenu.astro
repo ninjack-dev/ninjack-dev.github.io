@@ -41,9 +41,9 @@ if (explicitItems) {
     .map(toMenuItem);
 
   items = [
-    { label: "Writings", children: writingsItems },
-    { label: "Projects", children: [] },
-    { label: "About", children: [] },
+    { label: "Writings", href: "/writings", children: writingsItems },
+    { label: "Projects", href: "/projects", children: [] },
+    { label: "About", href: "/about", children: [] },
   ] as const;
 }
 
@@ -126,7 +126,6 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 {isRoot ? (
   <div
     class="tree-menu-root"
-    data-items={JSON.stringify(items)}
     style={`--tree-widest-label-ch: ${labelCh}; --tree-widest-depth: ${widestDepth};`}
   >
     {items.map((item, i) => {
@@ -302,41 +301,53 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 </style>
 
 <script>
-  interface MenuItem {
-    label: string;
-    href?: string;
-    count?: number;
-    children: MenuItem[];
-  }
-
   const el = document.querySelector(".tree-menu-root");
   if (!el) throw new Error("TreeMenu root not found");
-
-  const raw = el.getAttribute("data-items");
-  if (!raw) throw new Error("TreeMenu root missing data-items attribute");
-  const treeData: MenuItem[] = JSON.parse(raw);
 
   const container: HTMLElement = el;
 
   /** Current selection path (indices into each level). */
   let path: number[] = [];
 
-  function nodeAtPath(p: number[]): MenuItem | null {
-    if (p.length === 0) return null;
-    let node = treeData[p[0]];
-    if (!node) return null;
-    for (let i = 1; i < p.length; i++) {
-      node = node.children[p[i]];
-      if (!node) return null;
-    }
-    return node;
+  /** Get the DOM element at a given path. */
+  function elAtPath(p: number[]): HTMLElement | null {
+    const pathStr = p.join(",");
+    return container.querySelector(`.menu-item[data-path="${pathStr}"]`);
   }
 
-  function itemsAtLevel(level: number): MenuItem[] {
-    if (level === 0) return treeData;
-    const parentPath = path.slice(0, level);
-    const parent = nodeAtPath(parentPath);
-    return parent ? parent.children : [];
+  /** Check if the element at a given path has children (a .children-wrap). */
+  function hasChildren(itemPath: number[]): boolean {
+    const el = elAtPath(itemPath);
+    return el !== null && el.querySelector(".children-wrap") !== null;
+  }
+
+  /** Get the href of the element at a given path (if it has a link). */
+  function hrefAtPath(itemPath: number[]): string | null {
+    const el = elAtPath(itemPath);
+    if (!el) return null;
+    const a = el.querySelector<HTMLAnchorElement>(".menu-item-label a");
+    return a ? a.getAttribute("href") : null;
+  }
+
+  /** Count sibling items at a given level. */
+  function countAtLevel(level: number): number {
+    const prefix = path.slice(0, level);
+    let count = 0;
+    for (const item of container.querySelectorAll<HTMLElement>(".menu-item")) {
+      const raw = item.getAttribute("data-path");
+      if (!raw) continue;
+      const segments = raw.split(",").map(Number);
+      if (segments.length !== level + 1) continue;
+      let match = true;
+      for (let i = 0; i < level; i++) {
+        if (segments[i] !== prefix[i]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) count++;
+    }
+    return count;
   }
 
   /**
@@ -351,9 +362,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
    */
   function findFrontier(): number {
     if (path.length === 0) return 0;
-    const deepest = nodeAtPath(path);
-    if (!deepest) return path.length - 1;
-    if (deepest.children.length > 0) return path.length;
+    if (hasChildren(path)) return path.length;
     return path.length - 1;
   }
 
@@ -399,7 +408,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
    *   4. Set `max-height: 0px` → transition runs to 0
    *   5. On `transitionend` → clear inline style, remove `.open`
    */
-  function setChildrenOpen(wrap: HTMLElement, shouldOpen: boolean): void {
+  function setChildrenOpen(wrap: HTMLElement, shouldOpen: boolean, onClose?: () => void): void {
     if (shouldOpen === wrap.classList.contains("open")) return;
 
     if (shouldOpen) {
@@ -415,6 +424,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       const h = contentHeight(wrap);
       if (h === 0) {
         wrap.classList.remove("open");
+        onClose?.();
         return;
       }
       wrap.style.maxHeight = h + "px";
@@ -424,6 +434,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       const finish = () => {
         wrap.style.maxHeight = "";
         wrap.classList.remove("open");
+        onClose?.();
         wrap.removeEventListener("transitionend", finish);
       };
       wrap.addEventListener("transitionend", finish, { once: true });
@@ -433,8 +444,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   function shouldOpenChildren(itemPath: number[]): boolean {
     if (isAncestor(itemPath)) return true;
     if (isSelected(itemPath)) {
-      const node = nodeAtPath(itemPath);
-      return node !== null && node.children.length > 0;
+      return hasChildren(itemPath);
     }
     return false;
   }
@@ -442,40 +452,101 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   /**
    * Reconcile the DOM with the current `path`.
    *
-   * Two-pass strategy: first update visibility/selection on ALL items,
-   * then open/close children-wraps. This ensures that when we measure
-   * `scrollHeight` for a parent's children-wrap, its children have
-   * already been made `display: flex` (via `.visible`) and the browser
-   * includes them in the layout measurement.
+   * Three-pass strategy:
+   *   1. Close children-wraps that need to close — runs BEFORE visibility
+   *      changes so that `scrollHeight` measurements capture the still-visible
+   *      children, and `max-height` transitions are committed to the rendering
+   *      pipeline while the children are still laid out.
+   *   2. Update visibility and selection on all items **except** those inside
+   *      a wrap being animated closed — those keep `.visible` during the
+   *      collapse so the `max-height` transition has visible content to clip.
+   *   3. Open children-wraps that need to open — runs AFTER visibility
+   *      changes so the newly-visible children contribute to `scrollHeight`.
+   *
+   *   After each close transition completes (`transitionend`), `.visible` is
+   *   removed from the items inside that wrap, finalising their hidden state.
    */
   function updateDOM(): void {
     const items = container.querySelectorAll<HTMLElement>(".menu-item");
 
-    // ---- Pass 1: visibility and selection ----
-    const snapshots: { el: HTMLElement; itemPath: number[] }[] = [];
+    // ---- Snapshot: determine desired states ----
+    const snapshots: { el: HTMLElement; itemPath: number[]; wrap: HTMLElement | null; shouldOpen: boolean }[] = [];
     for (const el of items) {
       const raw = el.getAttribute("data-path");
       if (!raw) continue;
       const itemPath = raw.split(",").map(Number);
-      snapshots.push({ el, itemPath });
-      el.classList.toggle("visible", shouldBeVisible(itemPath));
+      snapshots.push({
+        el,
+        itemPath,
+        wrap: el.querySelector<HTMLElement>(".children-wrap"),
+        shouldOpen: shouldOpenChildren(itemPath),
+      });
+    }
+
+    // ---- Pass 1: close wraps while children are still visible ----
+    // Track which wraps are being animated closed so pass 2 can defer
+    // visibility updates for their contents.
+    // Only wraps that are currently *open* and need to close get tracked;
+    // wraps that are already closed return early from setChildrenOpen
+    // (no animation) and don't need deferred cleanup.
+    const closingWraps = new Set<HTMLElement>();
+    for (const { wrap, shouldOpen } of snapshots) {
+      if (wrap && !shouldOpen) {
+        if (wrap.classList.contains("open")) {
+          closingWraps.add(wrap);
+          setChildrenOpen(wrap, false, () => {
+            // Close animation finished — safe to hide children now.
+            for (const child of wrap.querySelectorAll<HTMLElement>(".menu-item")) {
+              child.classList.remove("visible");
+            }
+          });
+        } else {
+          // Already closed — just call setChildrenOpen for state cleanup
+          // (it returns immediately), no deferred cleanup needed.
+          setChildrenOpen(wrap, false);
+        }
+      }
+    }
+
+    // ---- Pass 2: update visibility and selection ----
+    for (const { el, itemPath } of snapshots) {
+      // Defer visibility removal for items inside a wrap being animated
+      // closed — the close callback above handles that after transitionend,
+      // which keeps content laid out during the collapse animation.
+      if (!descendsFromClosingWrap(el, closingWraps)) {
+        el.classList.toggle("visible", shouldBeVisible(itemPath));
+      }
       el.classList.toggle("selected", isSelected(itemPath));
     }
 
-    // ---- Pass 2: children-wrap open/close ----
-    for (const { el, itemPath } of snapshots) {
-      const wrap = el.querySelector<HTMLElement>(".children-wrap");
-      if (wrap) {
-        setChildrenOpen(wrap, shouldOpenChildren(itemPath));
+    // ---- Pass 3: open wraps (children are now visible) ----
+    for (const { wrap, shouldOpen } of snapshots) {
+      if (wrap && shouldOpen) {
+        setChildrenOpen(wrap, true);
       }
     }
+  }
+
+  /** True when `el` is inside (or is the host of) a `.children-wrap` being closed. */
+  function descendsFromClosingWrap(el: HTMLElement, closingWraps: Set<HTMLElement>): boolean {
+    // The item's own children-wrap is closing
+    if (el.querySelector(".children-wrap") && closingWraps.has(el.querySelector(".children-wrap") as HTMLElement)) {
+      return true;
+    }
+    // Walk up ancestors looking for a closing children-wrap
+    let cur: HTMLElement | null = el;
+    while (cur) {
+      if (cur.classList.contains("children-wrap") && closingWraps.has(cur)) return true;
+      cur = cur.parentElement;
+    }
+    return false;
   }
 
   function handleNumber(n: number): void {
     const frontier = findFrontier();
     if (frontier < 0) return;
-    const items = itemsAtLevel(frontier);
-    if (n - 1 >= items.length) return;
+    const count = countAtLevel(frontier);
+    if (n - 1 >= count) return;
 
     path = path.slice(0, frontier);
     path.push(n - 1);
@@ -485,9 +556,9 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   function moveSibling(delta: number): void {
     if (path.length === 0) return;
     const level = path.length - 1;
-    const items = itemsAtLevel(level);
+    const count = countAtLevel(level);
     const cur = path[level];
-    const next = Math.max(0, Math.min(items.length - 1, cur + delta));
+    const next = Math.max(0, Math.min(count - 1, cur + delta));
     if (next !== cur) {
       path[level] = next;
       updateDOM();
@@ -496,13 +567,14 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
   function drillIn(): void {
     if (path.length === 0) return;
-    const node = nodeAtPath(path);
-    if (!node) return;
-    if (node.children.length > 0) {
+    const href = hrefAtPath(path);
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    if (hasChildren(path)) {
       path.push(0);
       updateDOM();
-    } else if (node.href) {
-      window.location.href = node.href;
     }
   }
 
