@@ -402,6 +402,39 @@ const treeContent = items.map((item, i) => {
     }
   }
 
+  /**
+   * Stabilize the menu container width so it does not shift as the tree
+   * expands or collapses.
+   *
+   * A clone of the tree is rendered off-screen with every node visible
+   * and every children-wrap opened; the full scroll width is measured
+   * and applied as a min-width on the container.  Subsequent expansions
+   * never make the container narrower, so the bounding box stays fixed.
+   */
+  function stabilizeWidth(): void {
+    const clone = container.cloneNode(true) as HTMLElement;
+    clone.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden";
+
+    // Reveal every item so the measurement includes all levels.
+    clone.querySelectorAll<HTMLElement>(".menu-item").forEach((item) => {
+      item.classList.add("visible");
+    });
+
+    // Open every children-wrap (no transition — inline max-height
+    // is set directly so the wrap does not constrain its content).
+    clone.querySelectorAll<HTMLElement>(".children-wrap").forEach((wrap) => {
+      wrap.classList.add("open");
+      wrap.style.maxHeight = "none";
+    });
+
+    document.body.appendChild(clone);
+    const fullWidth = clone.scrollWidth;
+    document.body.removeChild(clone);
+
+    container.style.minWidth = fullWidth + "px";
+  }
+
   document.addEventListener("keydown", handleKey);
   updateDOM();
+  stabilizeWidth();
 </script>
