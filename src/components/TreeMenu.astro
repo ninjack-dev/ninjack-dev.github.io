@@ -44,13 +44,91 @@ if (explicitItems) {
     { label: "Writings", children: writingsItems },
     { label: "Projects", children: [] },
     { label: "About", children: [] },
-  ];
+  ] as const;
 }
+
+// ---- Build-time width stabilization --------------------------------
+// We find the single widest node in the tree and use its
+// characteristics to set a fixed width for the container.
+// The browser lays out the tree as a maximum of per-node
+// right-edge offsets — each node is independently indented from
+// the root, and only the widest single node matters for the
+// container width.
+//
+// The width is capped at the column width so the tree never
+// overflows the grid layout.
+//
+// Must stay in sync with the per-depth font-size rules in the CSS
+// below and the .children padding/margin indentation values.
+
+/** Font-size multiplier at a given depth (matching the CSS rules below). */
+function fontRatioAtDepth(depth: number): number {
+  // .depth-0: calc(100% + 2em)  →  3
+  // .depth-1: calc(100% + 1.2em) → 2.2
+  // .depth-2: calc(100% + 0.6em) → 1.6
+  // .depth-3+: calc(100% + 0.2em) → 1.2
+  if (depth <= 0) return 3;
+  if (depth === 1) return 2.2;
+  if (depth === 2) return 1.6;
+  return 1.2;
+}
+
+/**
+ * Walk the menu tree and find the single widest node (label-ch
+ * contribution × font ratio + depth indentation), which
+ * determines the container width.
+ */
+function computeWidestNode(tree: MenuItem[]): { labelCh: number; depth: number } {
+  let bestLabelCh = 0;
+  let bestDepth = 0;
+
+  function walk(nodes: MenuItem[], path: number[]) {
+    for (let i = 0; i < nodes.length; i++) {
+      const item = nodes[i];
+      const currentPath = [...path, i];
+      const depth = currentPath.length - 1;
+      const fontRatio = fontRatioAtDepth(depth);
+
+      const segs = currentPath.map((n) => n + 1);
+      const sigil = `[${segs.join(".")}]`;
+      const countStr =
+        item.count != null && item.count > 0 ? `(${item.count})` : "";
+      const parts = [sigil, item.label];
+      if (countStr) parts.push(countStr);
+      const displayStr = parts.join(" ");
+
+      const labelCh = displayStr.length * fontRatio;
+
+      // 1.4em per depth ≈ (1.4 / 0.6) ch for comparison purposes
+      const emToChRatio = 1.4 / 0.6;
+      const estimatedCh = labelCh + depth * emToChRatio;
+      const bestEstimatedCh = bestLabelCh + bestDepth * emToChRatio;
+
+      if (estimatedCh > bestEstimatedCh) {
+        bestLabelCh = labelCh;
+        bestDepth = depth;
+      }
+
+      if (item.children.length > 0) {
+        walk(item.children, currentPath);
+      }
+    }
+  }
+
+  walk(tree, []);
+  return { labelCh: Math.ceil(bestLabelCh), depth: bestDepth };
+}
+
+const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
 ---
 
 {isRoot ? (
-  <div class="tree-menu-root" data-items={JSON.stringify(items)}>
+  <div
+    class="tree-menu-root"
+    data-items={JSON.stringify(items)}
+    style={`--tree-widest-label-ch: ${labelCh}; --tree-widest-depth: ${widestDepth};`}
+  >
     {items.map((item, i) => {
       const path = [...parentPath, i];
       const pathStr = path.join(',');
@@ -62,24 +140,18 @@ if (explicitItems) {
         <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
           <div class="menu-item-label">
             <span class="sigil">[{sigil}]</span>
-            {
-              item.href
-                ? <a href={item.href} class="label">{item.label}</a>
-                : <span class="label">{item.label}</span>
-            }
-            {
-              item.count != null && item.count > 0 &&
-              <span class="count">({item.count})</span>
-            }
+            {item.href
+              ? <a href={item.href} class="label">{item.label}</a>
+              : <span class="label">{item.label}</span>}
+            {item.count != null && item.count > 0 &&
+              <span class="count">({item.count})</span>}
           </div>
-          {
-            item.children.length > 0 &&
+          {item.children.length > 0 &&
             <div class="children-wrap">
               <div class="children">
                 <Astro.self items={item.children} parentPath={path} />
               </div>
-            </div>
-          }
+            </div>}
         </div>
       );
     })}
@@ -96,24 +168,18 @@ if (explicitItems) {
       <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
         <div class="menu-item-label">
           <span class="sigil">[{sigil}]</span>
-          {
-            item.href
-              ? <a href={item.href} class="label">{item.label}</a>
-              : <span class="label">{item.label}</span>
-          }
-          {
-            item.count != null && item.count > 0 &&
-            <span class="count">({item.count})</span>
-          }
+          {item.href
+            ? <a href={item.href} class="label">{item.label}</a>
+            : <span class="label">{item.label}</span>}
+          {item.count != null && item.count > 0 &&
+            <span class="count">({item.count})</span>}
         </div>
-        {
-          item.children.length > 0 &&
+        {item.children.length > 0 &&
           <div class="children-wrap">
             <div class="children">
               <Astro.self items={item.children} parentPath={path} />
             </div>
-          </div>
-        }
+          </div>}
       </div>
     );
   })
@@ -143,25 +209,28 @@ if (explicitItems) {
     display: flex;
     flex-direction: row;
     align-items: baseline;
-    white-space: nowrap;
+    overflow-wrap: break-word;
     transition: color 100ms ease;
     cursor: default;
   }
 
-  /* Font-size steps by depth — depth-0 is the "root" level */
+  /* Font-size steps by depth — depth-0 is the "root" level.
+     The cqi multiplier is chosen so that cqi equals the step
+     at the precomputed width (~500px), so the step wins at
+     full width and cqi wins when the column shrinks. */
   .menu-item.depth-0 > .menu-item-label {
-    font-size: calc(100% + 2em);
+    font-size: min(10cqi, calc(100% + 2em));
   }
   .menu-item.depth-1 > .menu-item-label {
-    font-size: calc(100% + 1.2em);
+    font-size: min(7.5cqi, calc(100% + 1.2em));
   }
   .menu-item.depth-2 > .menu-item-label {
-    font-size: calc(100% + 0.6em);
+    font-size: min(5.5cqi, calc(100% + 0.6em));
   }
   .menu-item.depth-3 > .menu-item-label,
   .menu-item.depth-4 > .menu-item-label,
   .menu-item.depth-5 > .menu-item-label {
-    font-size: calc(100% + 0.2em);
+    font-size: min(4.5cqi, calc(100% + 0.2em));
   }
 
   /* ---------- bracketed sigil ---------- */
@@ -209,6 +278,17 @@ if (explicitItems) {
      the `.open` class just acts as a flag. */
   .children-wrap.open {
     /* inline max-height driven by JS */
+  }
+
+  .tree-menu-root {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    container-type: inline-size;
+    width: min(
+      calc(var(--tree-widest-label-ch) * 1ch + var(--tree-widest-depth) * 1.4em),
+      100%
+    );
   }
 
   .children {
@@ -475,39 +555,6 @@ if (explicitItems) {
     }
   }
 
-  /**
-   * Stabilize the menu container width so it does not shift as the tree
-   * expands or collapses.
-   *
-   * A clone of the tree is rendered off-screen with every node visible
-   * and every children-wrap opened; the full scroll width is measured
-   * and applied as a min-width on the container.  Subsequent expansions
-   * never make the container narrower, so the bounding box stays fixed.
-   */
-  function stabilizeWidth(): void {
-    const clone = container.cloneNode(true) as HTMLElement;
-    clone.style.cssText = "position:fixed;left:-9999px;top:0;visibility:hidden";
-
-    // Reveal every item so the measurement includes all levels.
-    clone.querySelectorAll<HTMLElement>(".menu-item").forEach((item) => {
-      item.classList.add("visible");
-    });
-
-    // Open every children-wrap (no transition — inline max-height
-    // is set directly so the wrap does not constrain its content).
-    clone.querySelectorAll<HTMLElement>(".children-wrap").forEach((wrap) => {
-      wrap.classList.add("open");
-      wrap.style.maxHeight = "none";
-    });
-
-    document.body.appendChild(clone);
-    const fullWidth = clone.scrollWidth;
-    document.body.removeChild(clone);
-
-    container.style.minWidth = fullWidth + "px";
-  }
-
   document.addEventListener("keydown", handleKey);
   updateDOM();
-  stabilizeWidth();
 </script>

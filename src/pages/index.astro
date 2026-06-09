@@ -19,12 +19,14 @@ import TreeMenu from "../components/TreeMenu.astro";
 
 <style>
   .home-panels {
-    display: grid;
+    display: flex;
+    justify-content: center;
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: var(--panel-gap);
     width: 100%;
     font-family: var(--font-mono);
+    --tree-column-width: calc(50vw - var(--panel-gap) / 2);
   }
 
   .home-panel-placeholder {
@@ -33,23 +35,12 @@ import TreeMenu from "../components/TreeMenu.astro";
     width: fit-content;
     align-items: center;
   }
-
-  .keyboard-menu {
-    display: flex;
-    flex-direction: column;
-    width: fit-content;
-    justify-self: end;
-  }
 </style>
 
 <BaseLayout title="ninjack.dev">
   <StatusBar />
   <div class="home-panels">
-    <div
-      class="keyboard-menu"
-    >
-      <TreeMenu />
-    </div>
+    <TreeMenu />
     <div class="home-panel-placeholder">
       <ProfilePic />
       <blockquote style="margin-top: 1em;">
@@ -61,5 +52,4 @@ import TreeMenu from "../components/TreeMenu.astro";
       </p>
     </div>
   </div>
-
 </BaseLayout>
