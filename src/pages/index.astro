@@ -3,40 +3,6 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 import ProfilePic from "../components/AvatarProfilePic.astro";
 import StatusBar from "../components/StatusBar/StatusBar.astro";
 import TreeMenu from "../components/TreeMenu.astro";
-import { getOntology, type OntologyNode } from "../lib/ontology/index.ts";
-
-const view = await getOntology();
-
-/** A node in the keyboard-navigable tree menu. */
-interface MenuItem {
-  label: string;
-  href?: string;
-  count?: number;
-  children: MenuItem[];
-}
-
-function toMenuItem(node: OntologyNode): MenuItem {
-  return {
-    label: node.name,
-    href: `/writings/${node.path}`,
-    count: view.count(node.path),
-    children: view
-      .childrenOf(node.path)
-      .filter((c) => view.count(c.path) > 0)
-      .map(toMenuItem),
-  };
-}
-
-const writingsItems: MenuItem[] = view
-  .childrenOf(null)
-  .filter((n) => view.count(n.path) > 0)
-  .map(toMenuItem);
-
-const rootItems: MenuItem[] = [
-  { label: "Writings", children: writingsItems },
-  { label: "Projects", children: [] },
-  { label: "About", children: [] },
-];
 ---
 
 <style is:global>
@@ -82,7 +48,7 @@ const rootItems: MenuItem[] = [
     <div
       class="keyboard-menu"
     >
-      <TreeMenu items={rootItems} />
+      <TreeMenu />
     </div>
     <div class="home-panel-placeholder">
       <ProfilePic />

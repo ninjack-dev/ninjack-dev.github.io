@@ -1,14 +1,51 @@
 ---
-import type { MenuItem } from '../types';
+import { getOntology, type OntologyNode } from '../lib/ontology/index.ts';
+
+interface MenuItem {
+  label: string;
+  href?: string;
+  count?: number;
+  children: MenuItem[];
+}
 
 export interface Props {
-  items: MenuItem[];
+  items?: MenuItem[];
   parentPath?: number[];
 }
 
-const { items, parentPath = [] } = Astro.props;
+const { items: explicitItems, parentPath = [] } = Astro.props;
 const depth = parentPath.length;
 const isRoot = depth === 0;
+
+let items: MenuItem[];
+if (explicitItems) {
+  items = explicitItems;
+} else {
+  const view = await getOntology();
+
+  function toMenuItem(node: OntologyNode): MenuItem {
+    return {
+      label: node.name,
+      href: `/writings/${node.path}`,
+      count: view.count(node.path),
+      children: view
+        .childrenOf(node.path)
+        .filter((c) => view.count(c.path) > 0)
+        .map(toMenuItem),
+    };
+  }
+
+  const writingsItems = view
+    .childrenOf(null)
+    .filter((n) => view.count(n.path) > 0)
+    .map(toMenuItem);
+
+  items = [
+    { label: "Writings", children: writingsItems },
+    { label: "Projects", children: [] },
+    { label: "About", children: [] },
+  ];
+}
 
 const treeContent = items.map((item, i) => {
   const path = [...parentPath, i];
