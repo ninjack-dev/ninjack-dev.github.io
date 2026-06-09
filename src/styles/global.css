@@ -9,8 +9,7 @@
   --code-bg: #2a2d36;
 
   /* Links */
-  --link: var(--accent);
-  --link-hover: #d6ff4d;
+  --link-hover: var(--accent);
 
   /* Callout accent colors */
   --callout-note: #4aa3ff;
@@ -56,11 +55,19 @@ h6 {
 }
 
 a {
-  color: var(--link);
+  color: var(--text);
   text-decoration: none;
+  font-weight: 500;
+  text-decoration: underline;
 }
 
 a:hover {
-  color: var(--link-hover);
-  text-decoration: underline;
+  text-decoration: underline var(--accent);
+}
+
+blockquote {
+  border-left: 4px solid var(--accent);
+  padding: 0 0 0 20px;
+  margin: 0;
+  font-size: 1.333em;
 }
