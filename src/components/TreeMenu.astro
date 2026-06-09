@@ -8,42 +8,43 @@ export interface Props {
 
 const { items, parentPath = [] } = Astro.props;
 const depth = parentPath.length;
----
+const isRoot = depth === 0;
 
-{
-  items.map((item, i) => {
-    const path = [...parentPath, i];
-    const pathStr = path.join(',');
-    const segs = path.map((n) => n + 1);
-    const sigil = segs.join('.');
-    const visibleClass = depth === 0 ? ' visible' : '';
+const treeContent = items.map((item, i) => {
+  const path = [...parentPath, i];
+  const pathStr = path.join(',');
+  const segs = path.map((n) => n + 1);
+  const sigil = segs.join('.');
+  const visibleClass = depth === 0 ? ' visible' : '';
 
-    return (
-      <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
-        <div class="menu-item-label">
-          <span class="sigil">[{sigil}]</span>
-          {
-            item.href
-              ? <a href={item.href} class="label">{item.label}</a>
-              : <span class="label">{item.label}</span>
-          }
-          {
-            item.count != null && item.count > 0 &&
-            <span class="count">({item.count})</span>
-          }
-        </div>
+  return (
+    <div class={`menu-item depth-${depth}${visibleClass}`} data-path={pathStr}>
+      <div class="menu-item-label">
+        <span class="sigil">[{sigil}]</span>
         {
-          item.children.length > 0 &&
-          <div class="children-wrap">
-            <div class="children">
-              <Astro.self items={item.children} parentPath={path} />
-            </div>
-          </div>
+          item.href
+            ? <a href={item.href} class="label">{item.label}</a>
+            : <span class="label">{item.label}</span>
+        }
+        {
+          item.count != null && item.count > 0 &&
+          <span class="count">({item.count})</span>
         }
       </div>
-    );
-  })
-}
+      {
+        item.children.length > 0 &&
+        <div class="children-wrap">
+          <div class="children">
+            <Astro.self items={item.children} parentPath={path} />
+          </div>
+        </div>
+      }
+    </div>
+  );
+});
+---
+
+{isRoot ? <div class="tree-menu-root" data-items={JSON.stringify(items)}>{treeContent}</div> : treeContent}
 
 <!--
   Global styles for the tree-menu widget.
@@ -146,3 +147,260 @@ const depth = parentPath.length;
     margin-top: 0.15em;
   }
 </style>
+
+<script>
+  interface MenuItem {
+    label: string;
+    href?: string;
+    count?: number;
+    children: MenuItem[];
+  }
+
+  const el = document.querySelector(".tree-menu-root");
+  if (!el) throw new Error("TreeMenu root not found");
+
+  const raw = el.getAttribute("data-items");
+  if (!raw) throw new Error("TreeMenu root missing data-items attribute");
+  const treeData: MenuItem[] = JSON.parse(raw);
+
+  const container: HTMLElement = el;
+
+  /** Current selection path (indices into each level). */
+  let path: number[] = [];
+
+  function nodeAtPath(p: number[]): MenuItem | null {
+    if (p.length === 0) return null;
+    let node = treeData[p[0]];
+    if (!node) return null;
+    for (let i = 1; i < p.length; i++) {
+      node = node.children[p[i]];
+      if (!node) return null;
+    }
+    return node;
+  }
+
+  function itemsAtLevel(level: number): MenuItem[] {
+    if (level === 0) return treeData;
+    const parentPath = path.slice(0, level);
+    const parent = nodeAtPath(parentPath);
+    return parent ? parent.children : [];
+  }
+
+  /**
+   * The **frontier** is the deepest level that has unselected children
+   * available below `path`.
+   *
+   * - Empty path → frontier = 0 (root items).
+   * - If the deepest selected node has children → frontier = path.length
+   *   (the children level).
+   * - If the deepest selected node is a leaf → frontier = path.length - 1
+   *   (replace at leaf level).
+   */
+  function findFrontier(): number {
+    if (path.length === 0) return 0;
+    const deepest = nodeAtPath(path);
+    if (!deepest) return path.length - 1;
+    if (deepest.children.length > 0) return path.length;
+    return path.length - 1;
+  }
+
+  function shouldBeVisible(itemPath: number[]): boolean {
+    if (itemPath.length <= 1) return true;
+    for (let i = 0; i < itemPath.length - 1; i++) {
+      if (i >= path.length || itemPath[i] !== path[i]) return false;
+    }
+    return true;
+  }
+
+  function isSelected(itemPath: number[]): boolean {
+    if (itemPath.length !== path.length) return false;
+    return itemPath.every((p, i) => p === path[i]);
+  }
+
+  function isAncestor(itemPath: number[]): boolean {
+    if (itemPath.length >= path.length) return false;
+    return itemPath.every((p, i) => p === path[i]);
+  }
+
+  function contentHeight(wrap: HTMLElement): number {
+    const inner = wrap.querySelector<HTMLElement>(".children");
+    return inner ? inner.scrollHeight : 0;
+  }
+
+  /**
+   * Toggle a children-wrap between closed ↔ open with a smooth
+   * max-height transition.
+   *
+   * Opening:
+   *   1. Add `.open` flag
+   *   2. Set inline `max-height` to the inner content height
+   *      → transition runs from CSS 0px to the target
+   *   3. On `transitionend` → set `max-height: none` so the
+   *      wrapper can grow/shrink freely when nested items open later.
+   *
+   * Closing:
+   *   1. Capture the current full content height (`.children.scrollHeight`)
+   *   2. Set inline `max-height` to that height (if it was `none`,
+   *      this locks the height to a concrete value)
+   *   3. Force a reflow
+   *   4. Set `max-height: 0px` → transition runs to 0
+   *   5. On `transitionend` → clear inline style, remove `.open`
+   */
+  function setChildrenOpen(wrap: HTMLElement, shouldOpen: boolean): void {
+    if (shouldOpen === wrap.classList.contains("open")) return;
+
+    if (shouldOpen) {
+      wrap.classList.add("open");
+      wrap.style.maxHeight = contentHeight(wrap) + "px";
+
+      const finish = () => {
+        wrap.style.maxHeight = "none";
+        wrap.removeEventListener("transitionend", finish);
+      };
+      wrap.addEventListener("transitionend", finish, { once: true });
+    } else {
+      const h = contentHeight(wrap);
+      if (h === 0) {
+        wrap.classList.remove("open");
+        return;
+      }
+      wrap.style.maxHeight = h + "px";
+      void wrap.offsetHeight;
+      wrap.style.maxHeight = "0px";
+
+      const finish = () => {
+        wrap.style.maxHeight = "";
+        wrap.classList.remove("open");
+        wrap.removeEventListener("transitionend", finish);
+      };
+      wrap.addEventListener("transitionend", finish, { once: true });
+    }
+  }
+
+  function shouldOpenChildren(itemPath: number[]): boolean {
+    if (isAncestor(itemPath)) return true;
+    if (isSelected(itemPath)) {
+      const node = nodeAtPath(itemPath);
+      return node !== null && node.children.length > 0;
+    }
+    return false;
+  }
+
+  /**
+   * Reconcile the DOM with the current `path`.
+   *
+   * Two-pass strategy: first update visibility/selection on ALL items,
+   * then open/close children-wraps. This ensures that when we measure
+   * `scrollHeight` for a parent's children-wrap, its children have
+   * already been made `display: flex` (via `.visible`) and the browser
+   * includes them in the layout measurement.
+   */
+  function updateDOM(): void {
+    const items = container.querySelectorAll<HTMLElement>(".menu-item");
+
+    // ---- Pass 1: visibility and selection ----
+    const snapshots: { el: HTMLElement; itemPath: number[] }[] = [];
+    for (const el of items) {
+      const raw = el.getAttribute("data-path");
+      if (!raw) continue;
+      const itemPath = raw.split(",").map(Number);
+      snapshots.push({ el, itemPath });
+      el.classList.toggle("visible", shouldBeVisible(itemPath));
+      el.classList.toggle("selected", isSelected(itemPath));
+    }
+
+    // ---- Pass 2: children-wrap open/close ----
+    for (const { el, itemPath } of snapshots) {
+      const wrap = el.querySelector<HTMLElement>(".children-wrap");
+      if (wrap) {
+        setChildrenOpen(wrap, shouldOpenChildren(itemPath));
+      }
+    }
+  }
+
+  function handleNumber(n: number): void {
+    const frontier = findFrontier();
+    if (frontier < 0) return;
+    const items = itemsAtLevel(frontier);
+    if (n - 1 >= items.length) return;
+
+    path = path.slice(0, frontier);
+    path.push(n - 1);
+    updateDOM();
+  }
+
+  function moveSibling(delta: number): void {
+    if (path.length === 0) return;
+    const level = path.length - 1;
+    const items = itemsAtLevel(level);
+    const cur = path[level];
+    const next = Math.max(0, Math.min(items.length - 1, cur + delta));
+    if (next !== cur) {
+      path[level] = next;
+      updateDOM();
+    }
+  }
+
+  function drillIn(): void {
+    if (path.length === 0) return;
+    const node = nodeAtPath(path);
+    if (!node) return;
+    if (node.children.length > 0) {
+      path.push(0);
+      updateDOM();
+    } else if (node.href) {
+      window.location.href = node.href;
+    }
+  }
+
+  function popLevel(): void {
+    if (path.length > 0) {
+      path.pop();
+      updateDOM();
+    }
+  }
+
+  function clearSelection(): void {
+    path = [];
+    updateDOM();
+  }
+
+  function handleKey(e: KeyboardEvent): void {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    const el = document.activeElement;
+    if (
+      el &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        (el instanceof HTMLElement && el.isContentEditable))
+    ) {
+      return;
+    }
+
+    const key = e.key;
+
+    if (key >= "1" && key <= "9") {
+      e.preventDefault();
+      handleNumber(parseInt(key, 10));
+    } else if (key === "j") {
+      e.preventDefault();
+      moveSibling(1);
+    } else if (key === "k") {
+      e.preventDefault();
+      moveSibling(-1);
+    } else if (key === "l" || key === "Enter") {
+      e.preventDefault();
+      drillIn();
+    } else if (key === "h" || key === "Backspace") {
+      e.preventDefault();
+      popLevel();
+    } else if (key === "Escape") {
+      e.preventDefault();
+      clearSelection();
+    }
+  }
+
+  document.addEventListener("keydown", handleKey);
+  updateDOM();
+</script>
