@@ -1,0 +1,11 @@
+#!/bin/sh
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+    echo "ERROR: not inside a Git repository" >&2
+    exit 1
+}
+
+hooks_dir="${repo_root}/.githooks"
+
+git config core.hooksPath "$hooks_dir"
+echo "Git hooks directory set to: $hooks_dir"

@@ -1,0 +1,54 @@
+#!/bin/sh
+
+CHARACTER_LIMIT=64
+
+commit_file="$1"
+[ -f "$commit_file" ] || exit 1
+
+# Read the first line (single-line commits only)
+message=$(sed -n '1p' "$commit_file")
+
+# Trim leading and trailing whitespace
+message=$(printf '%s' "$message" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+# Determine format and extract parts
+case "$message" in
+  *\(*\):*)
+    # Format: type(scope): description
+    type_part=$(printf '%s' "$message" | sed 's/^\([a-z]*\)(.*/\1/')
+    desc_part=$(printf '%s' "$message" | sed 's/^[a-z]*([^)]*):[[:space:]]*//')
+    ;;
+  *:*)
+    # Format: type: description
+    type_part=$(printf '%s' "$message" | sed 's/^\([a-z]*\):.*/\1/')
+    desc_part=$(printf '%s' "$message" | sed 's/^[a-z]*:[[:space:]]*//')
+    ;;
+  *)
+    echo "ERROR: Commit message does not follow Conventional Commits format (<type>: <description>)" >&2
+    exit 1
+    ;;
+esac
+
+# Validate type against allowed list
+case "$type_part" in
+  build | chore | ci | docs | feat | fix | perf | refactor | style | test) ;;
+  *)
+    echo "ERROR: Invalid commit type '$type_part'. Allowed types: build, chore, ci, docs, feat, fix, perf, refactor, style, test" >&2
+    exit 1
+    ;;
+esac
+
+# Check if description is empty
+if [ -z "$desc_part" ]; then
+  echo "ERROR: Commit description is empty." >&2
+  exit 1
+fi
+
+# Check description length
+desc_len=$(printf '%s' "$desc_part" | wc -c)
+if [ "$desc_len" -gt "$CHARACTER_LIMIT" ]; then
+  echo "ERROR: Commit description is ${desc_len} characters (max ${CHARACTER_LIMIT} allowed)." >&2
+  exit 1
+fi
+
+exit 0
