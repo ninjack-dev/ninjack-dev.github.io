@@ -4,74 +4,48 @@ const built = Date.now() - (Math.random() * (max - min) + min);
 ---
 
 <style>
-  @property --elapsed {
-    syntax: "<integer>";
-    inherits: false;
-    initial-value: 0;
-  }
-
-  @keyframes tick {
-    from {
-      --elapsed: 0;
-    }
-    to {
-      --elapsed: 3153600000;
-    }
-  }
-
   .uptime-root {
     display: flex;
     gap: 0.75em;
   }
 
-  /* The animation must live on the same element as the counter it drives:
-     supposedly, generated content (`counter()` in ::after) is only re-resolved when that
-     element's own style is invalidated, which an ancestor's animated custom property does NOT do. */
   .segment {
     font-size: 1em;
-    animation: tick 3153600000s linear var(--uptime-delay, 0s) infinite;
-    &::before {
-      padding-right: 0.2em;
-      font-size: 1.2em;
-    }
   }
 
-  .days {
-    counter-reset: day calc(round(down, var(--elapsed) / 86400, 1));
-    &::before {
-      content: counter(day);
-    }
-  }
-
-  .hours {
-    counter-reset: hour calc(mod(round(down, var(--elapsed) / 3600, 1), 24));
-    &::before {
-      content: counter(hour, decimal-leading-zero);
-    }
-  }
-
-  .mins {
-    counter-reset: min calc(mod(round(down, var(--elapsed) / 60, 1), 60));
-    &::before {
-      content: counter(min, decimal-leading-zero);
-    }
-  }
-
-  .secs {
-    counter-reset: sec calc(mod(var(--elapsed), 60));
-    &::before {
-      content: counter(sec, decimal-leading-zero);
-    }
+  .value {
+    font-size: 1.2em;
+    padding-right: 0.2em;
   }
 </style>
 
 <script is:inline define:vars={{ built }}>
-  const elapsed = Math.max(0, Math.floor((Date.now() - built) / 1000));
-  document.documentElement.style.setProperty("--uptime-delay", `-${elapsed}s`);
+  document.addEventListener("DOMContentLoaded", () => {
+    const root = document.getElementById("uptime-root");
+    if (!root) return;
+
+    const values = root.querySelectorAll(".value");
+
+    function update() {
+      const elapsed = Math.max(0, Math.floor((Date.now() - built) / 1000));
+      const days = Math.floor(elapsed / 86400);
+      const hours = Math.floor((elapsed % 86400) / 3600);
+      const mins = Math.floor((elapsed % 3600) / 60);
+      const secs = elapsed % 60;
+
+      values[0].textContent = String(days);
+      values[1].textContent = String(hours).padStart(2, "0");
+      values[2].textContent = String(mins).padStart(2, "0");
+      values[3].textContent = String(secs).padStart(2, "0");
+    }
+
+    update();
+    setInterval(update, 1000);
+  });
 </script>
 <div id="uptime-root" class="uptime-root">
-  <span class="segment days">d</span>
-  <span class="segment hours">h</span>
-  <span class="segment mins">m</span>
-  <span class="segment secs">s</span>
+  <span class="segment"><span class="value"></span>d</span>
+  <span class="segment"><span class="value"></span>h</span>
+  <span class="segment"><span class="value"></span>m</span>
+  <span class="segment"><span class="value"></span>s</span>
 </div>
