@@ -366,6 +366,7 @@ const treeContent = items.map((item, i) => {
   }
 
   function handleKey(e: KeyboardEvent): void {
+    if (e.repeat) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     const el = document.activeElement;
