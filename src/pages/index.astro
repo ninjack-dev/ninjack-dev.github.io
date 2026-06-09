@@ -1,35 +1,44 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import ProfilePic from '../components/AvatarProfilePic.astro';
-import StatusBar from '../components/StatusBar/StatusBar.astro';
-import { getOntology, type OntologyNode } from '../lib/ontology/index.ts';
-import OntologyTree, { type GroupNode } from '../components/OntologyTree.astro';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProfilePic from "../components/AvatarProfilePic.astro";
+import StatusBar from "../components/StatusBar/StatusBar.astro";
+import TreeMenu from "../components/TreeMenu.astro";
+import { getOntology, type OntologyNode } from "../lib/ontology/index.ts";
 
-// TODO:
-// - Replace these with the hrefs to their content pages
-const menuItems = ["Writings", "Projects", "About"];
-
-// Writings grouping for the menu: categories → subcategories → series, each
-// with a per-group published-article count. The shared view is publish-filtered
-// (prod: published only; dev: everything, so fixtures are visible locally).
 const view = await getOntology();
 
-const toGroup = (node: OntologyNode): GroupNode => ({
-  node,
-  count: view.count(node.path),
-  children: view
-    .childrenOf(node.path)
-    .filter((c) => view.count(c.path) > 0)
-    .map(toGroup),
-});
+/** A node in the keyboard-navigable tree menu. */
+interface MenuItem {
+  label: string;
+  href?: string;
+  count?: number;
+  children: MenuItem[];
+}
 
-const writingsTree: GroupNode[] = view
+function toMenuItem(node: OntologyNode): MenuItem {
+  return {
+    label: node.name,
+    href: `/writings/${node.path}`,
+    count: view.count(node.path),
+    children: view
+      .childrenOf(node.path)
+      .filter((c) => view.count(c.path) > 0)
+      .map(toMenuItem),
+  };
+}
+
+const writingsItems: MenuItem[] = view
   .childrenOf(null)
   .filter((n) => view.count(n.path) > 0)
-  .map(toGroup);
+  .map(toMenuItem);
+
+const rootItems: MenuItem[] = [
+  { label: "Writings", children: writingsItems },
+  { label: "Projects", children: [] },
+  { label: "About", children: [] },
+];
 ---
-<!-- Document-level rules must target the <body> rendered by BaseLayout, so
-     they can't be scoped to this component. Bundled only on this page. -->
+
 <style is:global>
   :root {
     --panel-gap: 4rem;
@@ -59,56 +68,290 @@ const writingsTree: GroupNode[] = view
     align-items: center;
   }
 
-  .main-menu {
+  .keyboard-menu {
     display: flex;
     flex-direction: column;
     width: fit-content;
     justify-self: end;
-
-    .main-menu-button {
-      display: flex;
-      flex-direction: row;
-      align-items: baseline;
-      white-space: nowrap;
-      font-size: calc(100% + 2em);
-
-      .main-menu-button-index {
-        font-weight: 100;
-        padding-right: 0.3em;
-      }
-
-      &:hover {
-        .main-menu-button-label {
-          text-decoration: underline var(--accent);
-          text-decoration-thickness: 1.5px;
-          text-underline-offset: 5px;
-        }
-      }
-    }
   }
-
 </style>
 
 <BaseLayout title="ninjack.dev">
   <StatusBar />
   <div class="home-panels">
-    <div class="main-menu">
-      {menuItems.map((l, i) => {
-        return <div class="main-menu-group">
-          <div class="main-menu-button">
-            <span class="main-menu-button-index">[{i + 1}]</span>
-            <span class="main-menu-button-label">{l}</span>
-          </div>
-          {l === "Writings" && writingsTree.length > 0 && (
-            <OntologyTree groups={writingsTree} />
-          )}
-        </div>
-      })}
+    <div
+      class="keyboard-menu"
+      id="keyboard-menu"
+      data-items={JSON.stringify(rootItems)}
+    >
+      <TreeMenu items={rootItems} />
     </div>
     <div class="home-panel-placeholder">
       <ProfilePic />
-      <blockquote style="margin-top: 1em;">Jack of all trades, master of some</blockquote>
-      <p>Software engineer based out of Portland, OR.<br>Lover of all things dev tooling.</p>
+      <blockquote style="margin-top: 1em;">
+        Jack of all trades, master of some
+      </blockquote>
+      <p>
+        Software engineer based out of Portland, OR.<br />Lover of all things
+        dev tooling.
+      </p>
     </div>
   </div>
+
+  <script>
+    interface MenuItem {
+      label: string;
+      href?: string;
+      count?: number;
+      children: MenuItem[];
+    }
+
+    const el = document.getElementById("keyboard-menu");
+    if (!el) throw new Error("keyboard-menu container not found");
+
+    const raw = el.dataset.items;
+    if (!raw) throw new Error("keyboard-menu missing data-items attribute");
+    const treeData: MenuItem[] = JSON.parse(raw);
+
+    const container: HTMLElement = el;
+
+    /** Current selection path (indices into each level). */
+    let path: number[] = [];
+
+    function nodeAtPath(p: number[]): MenuItem | null {
+      if (p.length === 0) return null;
+      let node = treeData[p[0]];
+      if (!node) return null;
+      for (let i = 1; i < p.length; i++) {
+        node = node.children[p[i]];
+        if (!node) return null;
+      }
+      return node;
+    }
+
+    function itemsAtLevel(level: number): MenuItem[] {
+      if (level === 0) return treeData;
+      const parentPath = path.slice(0, level);
+      const parent = nodeAtPath(parentPath);
+      return parent ? parent.children : [];
+    }
+
+    /**
+     * The **frontier** is the deepest level that has unselected children
+     * available below `path`.
+     *
+     * - Empty path → frontier = 0 (root items).
+     * - If the deepest selected node has children → frontier = path.length
+     *   (the children level).
+     * - If the deepest selected node is a leaf → frontier = path.length - 1
+     *   (replace at leaf level).
+     */
+    function findFrontier(): number {
+      if (path.length === 0) return 0;
+      const deepest = nodeAtPath(path);
+      if (!deepest) return path.length - 1;
+      if (deepest.children.length > 0) return path.length;
+      return path.length - 1;
+    }
+
+    function shouldBeVisible(itemPath: number[]): boolean {
+      if (itemPath.length <= 1) return true;
+      for (let i = 0; i < itemPath.length - 1; i++) {
+        if (i >= path.length || itemPath[i] !== path[i]) return false;
+      }
+      return true;
+    }
+
+    function isSelected(itemPath: number[]): boolean {
+      if (itemPath.length !== path.length) return false;
+      return itemPath.every((p, i) => p === path[i]);
+    }
+
+    function isAncestor(itemPath: number[]): boolean {
+      if (itemPath.length >= path.length) return false;
+      return itemPath.every((p, i) => p === path[i]);
+    }
+
+    function contentHeight(wrap: HTMLElement): number {
+      const inner = wrap.querySelector<HTMLElement>(".children");
+      return inner ? inner.scrollHeight : 0;
+    }
+
+    /**
+     * Toggle a children-wrap between closed ↔ open with a smooth
+     * max-height transition.
+     *
+     * Opening:
+     *   1. Add `.open` flag
+     *   2. Set inline `max-height` to the inner content height
+     *      → transition runs from CSS 0px to the target
+     *   3. On `transitionend` → set `max-height: none` so the
+     *      wrapper can grow/shrink freely when nested items open later.
+     *
+     * Closing:
+     *   1. Capture the current full content height (`.children.scrollHeight`)
+     *   2. Set inline `max-height` to that height (if it was `none`,
+     *      this locks the height to a concrete value)
+     *   3. Force a reflow
+     *   4. Set `max-height: 0px` → transition runs to 0
+     *   5. On `transitionend` → clear inline style, remove `.open`
+     */
+    function setChildrenOpen(wrap: HTMLElement, shouldOpen: boolean): void {
+      if (shouldOpen === wrap.classList.contains("open")) return;
+
+      if (shouldOpen) {
+        wrap.classList.add("open");
+        wrap.style.maxHeight = contentHeight(wrap) + "px";
+
+        const finish = () => {
+          wrap.style.maxHeight = "none";
+          wrap.removeEventListener("transitionend", finish);
+        };
+        wrap.addEventListener("transitionend", finish, { once: true });
+      } else {
+        const h = contentHeight(wrap);
+        if (h === 0) {
+          wrap.classList.remove("open");
+          return;
+        }
+        wrap.style.maxHeight = h + "px";
+        void wrap.offsetHeight;
+        wrap.style.maxHeight = "0px";
+
+        const finish = () => {
+          wrap.style.maxHeight = "";
+          wrap.classList.remove("open");
+          wrap.removeEventListener("transitionend", finish);
+        };
+        wrap.addEventListener("transitionend", finish, { once: true });
+      }
+    }
+
+    function shouldOpenChildren(itemPath: number[]): boolean {
+      if (isAncestor(itemPath)) return true;
+      if (isSelected(itemPath)) {
+        const node = nodeAtPath(itemPath);
+        return node !== null && node.children.length > 0;
+      }
+      return false;
+    }
+
+    /**
+     * Reconcile the DOM with the current `path`.
+     *
+     * Two-pass strategy: first update visibility/selection on ALL items,
+     * then open/close children-wraps. This ensures that when we measure
+     * `scrollHeight` for a parent's children-wrap, its children have
+     * already been made `display: flex` (via `.visible`) and the browser
+     * includes them in the layout measurement.
+     */
+    function updateDOM(): void {
+      const items = container.querySelectorAll<HTMLElement>(".menu-item");
+
+      // ---- Pass 1: visibility and selection ----
+      const snapshots: { el: HTMLElement; itemPath: number[] }[] = [];
+      for (const el of items) {
+        const raw = el.getAttribute("data-path");
+        if (!raw) continue;
+        const itemPath = raw.split(",").map(Number);
+        snapshots.push({ el, itemPath });
+        el.classList.toggle("visible", shouldBeVisible(itemPath));
+        el.classList.toggle("selected", isSelected(itemPath));
+      }
+
+      // ---- Pass 2: children-wrap open/close ----
+      for (const { el, itemPath } of snapshots) {
+        const wrap = el.querySelector<HTMLElement>(".children-wrap");
+        if (wrap) {
+          setChildrenOpen(wrap, shouldOpenChildren(itemPath));
+        }
+      }
+    }
+
+    function handleNumber(n: number): void {
+      const frontier = findFrontier();
+      if (frontier < 0) return;
+      const items = itemsAtLevel(frontier);
+      if (n - 1 >= items.length) return;
+
+      path = path.slice(0, frontier);
+      path.push(n - 1);
+      updateDOM();
+    }
+
+    function moveSibling(delta: number): void {
+      if (path.length === 0) return;
+      const level = path.length - 1;
+      const items = itemsAtLevel(level);
+      const cur = path[level];
+      const next = Math.max(0, Math.min(items.length - 1, cur + delta));
+      if (next !== cur) {
+        path[level] = next;
+        updateDOM();
+      }
+    }
+
+    function drillIn(): void {
+      if (path.length === 0) return;
+      const node = nodeAtPath(path);
+      if (!node) return;
+      if (node.children.length > 0) {
+        path.push(0);
+        updateDOM();
+      } else if (node.href) {
+        window.location.href = node.href;
+      }
+    }
+
+    function popLevel(): void {
+      if (path.length > 0) {
+        path.pop();
+        updateDOM();
+      }
+    }
+
+    function clearSelection(): void {
+      path = [];
+      updateDOM();
+    }
+
+    function handleKey(e: KeyboardEvent): void {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          (el instanceof HTMLElement && el.isContentEditable))
+      ) {
+        return;
+      }
+
+      const key = e.key;
+
+      if (key >= "1" && key <= "9") {
+        e.preventDefault();
+        handleNumber(parseInt(key, 10));
+      } else if (key === "j") {
+        e.preventDefault();
+        moveSibling(1);
+      } else if (key === "k") {
+        e.preventDefault();
+        moveSibling(-1);
+      } else if (key === "l" || key === "Enter") {
+        e.preventDefault();
+        drillIn();
+      } else if (key === "h" || key === "Backspace") {
+        e.preventDefault();
+        popLevel();
+      } else if (key === "Escape") {
+        e.preventDefault();
+        clearSelection();
+      }
+    }
+
+    document.addEventListener("keydown", handleKey);
+    updateDOM();
+  </script>
 </BaseLayout>
