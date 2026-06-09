@@ -1,0 +1,77 @@
+---
+const [max, min] = [86_400_000, 2_629_800_000];
+const built = Date.now() - (Math.random() * (max - min) + min);
+---
+
+<style>
+  @property --elapsed {
+    syntax: "<integer>";
+    inherits: false;
+    initial-value: 0;
+  }
+
+  @keyframes tick {
+    from {
+      --elapsed: 0;
+    }
+    to {
+      --elapsed: 3153600000;
+    }
+  }
+
+  .uptime-root {
+    display: flex;
+    gap: 0.75em;
+  }
+
+  /* The animation must live on the same element as the counter it drives:
+     supposedly, generated content (`counter()` in ::after) is only re-resolved when that
+     element's own style is invalidated, which an ancestor's animated custom property does NOT do. */
+  .segment {
+    font-size: 1em;
+    animation: tick 3153600000s linear var(--uptime-delay, 0s) infinite;
+    &::before {
+      padding-right: 0.2em;
+      font-size: 1.2em;
+    }
+  }
+
+  .days {
+    counter-reset: day calc(round(down, var(--elapsed) / 86400, 1));
+    &::before {
+      content: counter(day);
+    }
+  }
+
+  .hours {
+    counter-reset: hour calc(mod(round(down, var(--elapsed) / 3600, 1), 24));
+    &::before {
+      content: counter(hour, decimal-leading-zero);
+    }
+  }
+
+  .mins {
+    counter-reset: min calc(mod(round(down, var(--elapsed) / 60, 1), 60));
+    &::before {
+      content: counter(min, decimal-leading-zero);
+    }
+  }
+
+  .secs {
+    counter-reset: sec calc(mod(var(--elapsed), 60));
+    &::before {
+      content: counter(sec, decimal-leading-zero);
+    }
+  }
+</style>
+
+<script is:inline define:vars={{ built }}>
+  const elapsed = Math.max(0, Math.floor((Date.now() - built) / 1000));
+  document.documentElement.style.setProperty("--uptime-delay", `-${elapsed}s`);
+</script>
+<div id="uptime-root" class="uptime-root">
+  <span class="segment days">d</span>
+  <span class="segment hours">h</span>
+  <span class="segment mins">m</span>
+  <span class="segment secs">s</span>
+</div>
