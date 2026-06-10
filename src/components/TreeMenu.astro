@@ -452,6 +452,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     path.push(n - 1);
     hoverPath = null;
     stickyBranches.clear();
+    cancelRestore();
     pinAlignment();
     updateDOM();
   }
@@ -463,6 +464,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     const cur = path[level];
     const next = Math.max(0, Math.min(count - 1, cur + delta));
     if (next !== cur) {
+      cancelRestore();
       path[level] = next;
       updateDOM();
     }
@@ -476,6 +478,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       return;
     }
     if (hasChildren(path)) {
+      cancelRestore();
       path.push(0);
       updateDOM();
     }
@@ -483,6 +486,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
   function popLevel(): void {
     if (path.length > 0) {
+      cancelRestore();
       path.pop();
       updateDOM();
     }
