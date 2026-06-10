@@ -136,7 +136,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       return (
         <div class={`menu-item depth-${depth}`} data-path={pathStr}>
           <div class="menu-item-label">
-            <span class="sigil">[{sigil}]</span>
+            <span class="sigil">[{segs.slice(0, -1).join('.')}{segs.length > 1 ? '.' : ''}<span class="sigil-segment-last">{segs.at(-1)}</span>]</span>
             {item.href
               ? <a href={item.href} class="label">{item.label}</a>
               : <span class="label">{item.label}</span>}
@@ -162,7 +162,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   return (
     <div class={`menu-item depth-${depth}`} data-path={pathStr}>
       <div class="menu-item-label">
-        <span class="sigil">[{sigil}]</span>
+        <span class="sigil">[{segs.slice(0, -1).join('.')}{segs.length > 1 ? '.' : ''}<span class="sigil-segment-last">{segs.at(-1)}</span>]</span>
         {item.href
           ? <a href={item.href} class="label">{item.label}</a>
           : <span class="label">{item.label}</span>}
@@ -228,7 +228,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     color: var(--text-muted);
     transition: color 150ms ease;
   }
-  .menu-item.selected > .menu-item-label .sigil {
+  .menu-item.selected > .menu-item-label .sigil-segment-last {
     color: var(--accent);
   }
 
