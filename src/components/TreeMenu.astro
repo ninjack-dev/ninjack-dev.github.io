@@ -253,6 +253,13 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     font-size: 0.6em;
   }
 
+  /**
+   * Children-wrap uses grid-template-rows for the height animation.
+   * Only the *innermost* wrap that is directly opening animates;
+   * ancestor wraps are already at 1fr and their layout snaps
+   * immediately when child content expands, so the cursor never
+   * drifts relative to the active item's label.
+   */
   .children-wrap {
     display: grid;
     grid-template-rows: 0fr;
@@ -291,6 +298,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   if (!el) throw new Error("TreeMenu root not found");
 
   const container: HTMLElement = el;
+  const panelsContainer = container.parentElement as HTMLElement;
 
   /** Current keyboard-selection path (indices into each level). */
   let path: number[] = [];
@@ -299,11 +307,13 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   let hoverPath: number[] | null = null;
 
   /**
-   * Snapshot of hoverPath taken at the moment a keypress transitions from
-   * hover to keyboard mode. The mouseover handler uses this to suppress the
-   * DOM-triggered synthetic mouseover that fires right after layout changes.
+   * Set of item-path strings whose children-wrap should stay open as long
+   * as their parent is in the current hover path's ancestor chain.  When
+   * the cursor moves laterally within a parent's subtree, previously-opened
+   * sibling branches persist so the menu layout doesn't shift under the
+   * cursor.
    */
-  let hoverBeforeKeypress: number[] | null = null;
+  let stickyBranches: Set<string> = new Set();
 
   /** Get the DOM element at a given path. */
   function elAtPath(p: number[]): HTMLElement | null {
@@ -391,6 +401,16 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       if (isPrefix(itemPath, hoverPath)) return true;
     }
 
+    // Sticky branches: previously-opened items whose parent is still
+    // in the current hover path's ancestor chain.  This prevents the
+    // menu layout from shifting when the cursor moves between siblings.
+    if (stickyBranches.has(itemPath.join(","))) return true;
+    if (hoverPath !== null) {
+      for (const branchStr of stickyBranches) {
+        if (isPrefix(itemPath, branchStr.split(",").map(Number))) return true;
+      }
+    }
+
     return false;
   }
 
@@ -423,7 +443,6 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     // item as the starting keyboard path so that findFrontier() operates
     // at the correct depth (not root level).
     if (path.length === 0 && hoverPath !== null) {
-      hoverBeforeKeypress = hoverPath;
       path = [...hoverPath];
     }
 
@@ -435,6 +454,8 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     path = path.slice(0, frontier);
     path.push(n - 1);
     hoverPath = null;
+    stickyBranches.clear();
+    pinHoverAlignment();
     updateDOM();
   }
 
@@ -471,10 +492,12 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   }
 
   function clearSelection(): void {
+    const wasHovering = hoverPath !== null;
     path = [];
     hoverPath = null;
-    hoverBeforeKeypress = null;
+    stickyBranches.clear();
     updateDOM();
+    if (wasHovering) scheduleAlignmentRestore();
   }
 
   function handleKey(e: KeyboardEvent): void {
@@ -514,6 +537,71 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     }
   }
 
+  // --- Alignment pinning for hover expansion ---
+
+  let alignmentRestoreTimer: number | null = null;
+
+  /**
+   * Pin the tree menu's top edge so children only expand downward.
+   *
+   * Reads the current offset from the flex container, then switches to
+   * `align-self: flex-start` with a compensating margin-top that keeps
+   * the visual position stable.  The placeholder sibling is pinned the
+   * same way so neither panel shifts when the flex line grows.
+   */
+  function pinHoverAlignment(): void {
+    if (container.style.alignSelf === "flex-start") return;
+
+    const panelsRect = panelsContainer.getBoundingClientRect();
+    const treeRect = container.getBoundingClientRect();
+
+    container.style.alignSelf = "flex-start";
+    container.style.marginTop = (treeRect.top - panelsRect.top) + "px";
+    container.style.marginBottom = "0";
+
+    // Also pin the placeholder so it doesn't re-centre when the flex line grows.
+    const placeholder =
+      panelsContainer.querySelector<HTMLElement>(".home-panel-placeholder");
+    if (placeholder) {
+      const phRect = placeholder.getBoundingClientRect();
+      placeholder.style.alignSelf = "flex-start";
+      placeholder.style.marginTop = (phRect.top - panelsRect.top) + "px";
+      placeholder.style.marginBottom = "0";
+    }
+  }
+
+  function restoreDefaultAlignment(): void {
+    container.style.alignSelf = "";
+    container.style.marginTop = "";
+    container.style.marginBottom = "";
+
+    const placeholder =
+      panelsContainer.querySelector<HTMLElement>(".home-panel-placeholder");
+    if (placeholder) {
+      placeholder.style.alignSelf = "";
+      placeholder.style.marginTop = "";
+      placeholder.style.marginBottom = "";
+    }
+  }
+
+  function scheduleAlignmentRestore(): void {
+    if (alignmentRestoreTimer !== null) {
+      clearTimeout(alignmentRestoreTimer);
+    }
+    // Match the CSS grid-template-rows transition duration (350ms).
+    alignmentRestoreTimer = window.setTimeout(() => {
+      alignmentRestoreTimer = null;
+      restoreDefaultAlignment();
+    }, 350);
+  }
+
+  function cancelAlignmentRestore(): void {
+    if (alignmentRestoreTimer !== null) {
+      clearTimeout(alignmentRestoreTimer);
+      alignmentRestoreTimer = null;
+    }
+  }
+
   // --- Mouse / hover state machine ---
 
   container.addEventListener("mouseover", (e: MouseEvent) => {
@@ -532,14 +620,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     // so hover does not affect it.
     if (path.length > 0 && arraysEqual(path, itemPath)) return;
 
-    // Suppress the synthetic mouseover that browsers sometimes fire
-    // when DOM layout changes right after a keypress (the collapsing
-    // animation can re-home the cursor over the same element).
-    if (hoverBeforeKeypress !== null && arraysEqual(itemPath, hoverBeforeKeypress)) {
-      hoverBeforeKeypress = null;
-      return;
-    }
-    hoverBeforeKeypress = null;
+    const wasHovering = hoverPath !== null;
 
     // Hovering over anything else clears the keyboard selection
     // (unlocks the previously selected item) and enters hover mode.
@@ -547,14 +628,67 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       path = [];
     }
 
+    const prevHoverPath = hoverPath;
     hoverPath = itemPath;
+
+    // Build the ancestor chain of the new hover path so we can filter
+    // sticky branches whose parent is no longer hovered.
+    const ancestors = new Set<string>();
+    for (let i = 1; i <= hoverPath.length; i++) {
+      ancestors.add(hoverPath.slice(0, i).join(","));
+    }
+
+    // Retain sticky branches whose parent is still in the ancestor chain.
+    const newSticky = new Set<string>();
+    for (const pathStr of stickyBranches) {
+      const parts = pathStr.split(",").map(Number);
+      if (parts.length > 1) {
+        const parentStr = parts.slice(0, -1).join(",");
+        if (ancestors.has(parentStr)) {
+          newSticky.add(pathStr);
+        }
+      }
+    }
+
+    // When the cursor moves to a different branch, add the old branch's
+    // deepest non-shared ancestor to the sticky set so it persists
+    // (instead of collapsing and shifting sibling positions).
+    if (prevHoverPath !== null) {
+      let i = 0;
+      while (
+        i < prevHoverPath.length &&
+        i < hoverPath.length &&
+        prevHoverPath[i] === hoverPath[i]
+      ) {
+        i++;
+      }
+      if (i < prevHoverPath.length) {
+        const staleEntry = prevHoverPath.slice(0, i + 1);
+        if (staleEntry.length > 1) {
+          newSticky.add(staleEntry.join(","));
+        }
+      }
+      // If we've moved into a deeper level of the same branch, clear
+      // the sticky set — ancestors handle openness via isPrefix.
+    }
+
+    stickyBranches = newSticky;
+
+    if (!wasHovering) {
+      cancelAlignmentRestore();
+      pinHoverAlignment();
+    }
+
     updateDOM();
   });
 
   container.addEventListener("mouseleave", () => {
-    if (hoverPath !== null) {
+    if (hoverPath !== null || stickyBranches.size > 0) {
       hoverPath = null;
+      stickyBranches.clear();
       updateDOM();
+      // Let the close animation finish before restoring default alignment.
+      scheduleAlignmentRestore();
     }
   });
 

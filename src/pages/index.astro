@@ -26,8 +26,13 @@ import TreeMenu from "../components/TreeMenu.astro";
     gap: var(--panel-gap);
     width: 100%;
     font-family: var(--font-mono);
+    /* Ensure the panels container is at least viewport tall so the tree
+       and placeholder have room to expand downward. */
+    min-height: 100vh;
     --tree-column-width: calc(50vw - var(--panel-gap) / 2);
   }
+
+
 
   .home-panel-placeholder {
     display: flex;
