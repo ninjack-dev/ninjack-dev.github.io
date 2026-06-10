@@ -35,6 +35,8 @@ import profileReal from '../assets/profile.png';
     overflow: hidden;
     cursor: crosshair;
     flex-shrink: 0;
+    contain: layout style paint;
+    transform: translateZ(0);
 
     img {
       display: block;
@@ -112,11 +114,18 @@ import profileReal from '../assets/profile.png';
     let pendingCommit = false;
     let isHovering = false;
 
+    let cachedRect: DOMRect | null = null;
+    function invalidateRect() { cachedRect = null; }
+    window.addEventListener('resize', invalidateRect);
+    window.addEventListener('scroll', invalidateRect, { passive: true });
+
     function getAngle(clientX: number, clientY: number): number {
-      const r = container.getBoundingClientRect();
+      if (!cachedRect) {
+        cachedRect = container.getBoundingClientRect();
+      }
       return Math.atan2(
-        clientY - (r.top + r.height / 2),
-        clientX - (r.left + r.width / 2),
+        clientY - (cachedRect.top + cachedRect.height / 2),
+        clientX - (cachedRect.left + cachedRect.width / 2),
       ) * (180 / Math.PI);
     }
 
@@ -159,8 +168,26 @@ import profileReal from '../assets/profile.png';
       }, ENTER_MS);
     }
 
-    function move(clientX: number, clientY: number): void {
+    // --- rAF-coalesced mousemove ---
+    let pendingMove: { clientX: number; clientY: number } | null = null;
+    let moveRafScheduled = false;
+
+    function flushMove(): void {
+      moveRafScheduled = false;
+      if (!pendingMove) return;
+      const { clientX, clientY } = pendingMove;
+      pendingMove = null;
+      // Mask isn't visible in these states — no point updating.
+      if (animState === 'idle' || animState === 'locked') return;
       avatar.style.setProperty('--mask-angle', `${getAngle(clientX, clientY)}deg`);
+    }
+
+    function scheduleMove(clientX: number, clientY: number): void {
+      pendingMove = { clientX, clientY };
+      if (!moveRafScheduled) {
+        moveRafScheduled = true;
+        requestAnimationFrame(flushMove);
+      }
     }
 
     function leave(clientX: number, clientY: number): void {
@@ -176,7 +203,7 @@ import profileReal from '../assets/profile.png';
     }
 
     container.addEventListener('mouseenter', (e: MouseEvent) => { isHovering = true;  enter(e.clientX, e.clientY); });
-    container.addEventListener('mousemove',  (e: MouseEvent) => move(e.clientX, e.clientY));
+    container.addEventListener('mousemove',  (e: MouseEvent) => scheduleMove(e.clientX, e.clientY));
     container.addEventListener('mouseleave', (e: MouseEvent) => { isHovering = false; leave(e.clientX, e.clientY); });
 
     container.addEventListener('click', () => {
@@ -193,7 +220,7 @@ import profileReal from '../assets/profile.png';
     container.addEventListener('touchmove', (e: TouchEvent) => {
       e.preventDefault();
       const t = e.touches[0];
-      move(t.clientX, t.clientY);
+      scheduleMove(t.clientX, t.clientY);
     }, { passive: false });
 
     container.addEventListener('touchend', (e: TouchEvent) => {
