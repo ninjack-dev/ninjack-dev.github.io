@@ -17,27 +17,14 @@ import type {
   RenderedContent,
   ResolvedGlobPlusOptions,
 } from "./types.ts";
-import {
-  buildDirTree,
-  findFile,
-  generateIdDefault,
-  insertFile,
-  removeFile,
-} from "./utils.ts";
+import { buildDirTree, findFile, generateIdDefault, insertFile, removeFile } from "./utils.ts";
 
 // Re-export the public types and the first-party markdown hook set.
-export type {
-  DirNode,
-  FileNode,
-  GlobPlusIntegration,
-  GlobPlusOptions,
-} from "./types.ts";
+export type { DirNode, FileNode, GlobPlusIntegration, GlobPlusOptions } from "./types.ts";
 export { markdownHooks } from "./integrations/markdown/index.ts";
 
 // The render function `ContentEntryType.getRenderFunction` resolves to.
-type RenderFn = Awaited<
-  ReturnType<NonNullable<ContentEntryType["getRenderFunction"]>>
->;
+type RenderFn = Awaited<ReturnType<NonNullable<ContentEntryType["getRenderFunction"]>>>;
 
 // Matches function used by glob
 function posixRelative(from: string, to: string): string {
@@ -100,15 +87,7 @@ export function globplus(options: GlobPlusOptions): Loader {
   return {
     name: "globplus-loader",
     load: async (context: LoaderContext) => {
-      const {
-        collection,
-        logger,
-        watcher,
-        parseData,
-        store,
-        generateDigest,
-        entryTypes,
-      } = context;
+      const { collection, logger, watcher, parseData, store, generateDigest, entryTypes } = context;
 
       // `runSetup` clones `context.config` (the shared global) and returns the
       // clone after `gp:config:setup` hooks have mutated it. The clone is
@@ -128,10 +107,7 @@ export function globplus(options: GlobPlusOptions): Loader {
       const contributions = await setupPromise;
       const config = contributions.config;
 
-      const renderFunctionByContentType = new WeakMap<
-        ContentEntryType,
-        RenderFn
-      >();
+      const renderFunctionByContentType = new WeakMap<ContentEntryType, RenderFn>();
 
       const untouchedEntries = new Set(store.keys());
 
@@ -145,10 +121,7 @@ export function globplus(options: GlobPlusOptions): Loader {
         untouchedEntries.delete(id);
         store.set({ ...input.entry, digest });
         if (input.entry.filePath) {
-          fileToIdMap.set(
-            fileURLToPath(new URL(input.entry.filePath, config.root)),
-            id,
-          );
+          fileToIdMap.set(fileURLToPath(new URL(input.entry.filePath, config.root)), id);
         }
       };
 
@@ -186,8 +159,7 @@ export function globplus(options: GlobPlusOptions): Loader {
           logger,
           params: () => ({ entry, base, data, defaultId }),
         });
-        const id = overrides.findLast((v) => typeof v === "string") ??
-          defaultId;
+        const id = overrides.findLast((v) => typeof v === "string") ?? defaultId;
 
         if (oldId && oldId !== id) {
           store.delete(oldId);
@@ -198,8 +170,8 @@ export function globplus(options: GlobPlusOptions): Loader {
         // is still live and must stay in the tree / byId, so this runs before
         // the digest-skip early return below. Watcher syncData for a brand-new
         // file not yet in the tree inserts it here first.
-        const fileNode = findFile(treeRef.current, entry) ??
-          insertFile(treeRef.current, entry, fileUrl);
+        const fileNode =
+          findFile(treeRef.current, entry) ?? insertFile(treeRef.current, entry, fileUrl);
         fileNode.id = id;
         byId.set(id, fileNode);
 
@@ -210,28 +182,18 @@ export function globplus(options: GlobPlusOptions): Loader {
         const digest = generateDigest(contents);
         const filePath = fileURLToPath(fileUrl);
 
-        if (
-          existingEntry &&
-          existingEntry.digest === digest &&
-          existingEntry.filePath
-        ) {
+        if (existingEntry && existingEntry.digest === digest && existingEntry.filePath) {
           if (existingEntry.deferredRender) {
             store.addModuleImport(existingEntry.filePath);
           }
           if (existingEntry.assetImports?.length) {
-            store.addAssetImports(
-              existingEntry.assetImports,
-              existingEntry.filePath,
-            );
+            store.addAssetImports(existingEntry.assetImports, existingEntry.filePath);
           }
           fileToIdMap.set(filePath, id);
           return;
         }
 
-        const relativePath = posixRelative(
-          fileURLToPath(config.root),
-          filePath,
-        );
+        const relativePath = posixRelative(fileURLToPath(config.root), filePath);
 
         await runHook({
           integrations,
@@ -248,11 +210,7 @@ export function globplus(options: GlobPlusOptions): Loader {
 
         const parsedData = await parseData({ id, data, filePath });
 
-        if (
-          existingEntry &&
-          existingEntry.filePath &&
-          existingEntry.filePath !== relativePath
-        ) {
+        if (existingEntry && existingEntry.filePath && existingEntry.filePath !== relativePath) {
           const oldFilePath = new URL(existingEntry.filePath, config.root);
           if (existsSync(oldFilePath)) {
             logger.warn(
@@ -275,9 +233,7 @@ export function globplus(options: GlobPlusOptions): Loader {
           try {
             rendered = await render?.({ id, data, body, filePath, digest });
           } catch (error) {
-            logger.error(
-              `Error rendering ${entry}: ${(error as Error).message}`,
-            );
+            logger.error(`Error rendering ${entry}: ${(error as Error).message}`);
           }
 
           if (rendered) {
@@ -341,9 +297,7 @@ export function globplus(options: GlobPlusOptions): Loader {
         fileToIdMap.set(filePath, id);
       }
 
-      const baseDir = options.base
-        ? new URL(options.base, config.root)
-        : config.root;
+      const baseDir = options.base ? new URL(options.base, config.root) : config.root;
       if (!baseDir.pathname.endsWith("/")) {
         baseDir.pathname = `${baseDir.pathname}/`;
       }
@@ -363,12 +317,9 @@ export function globplus(options: GlobPlusOptions): Loader {
 
       const contentDir = new URL("content/", config.srcDir);
       const configFiles = new Set(
-        ["config.js", "config.ts", "config.mjs"].map(
-          (file) => new URL(file, contentDir).href,
-        ),
+        ["config.js", "config.ts", "config.mjs"].map((file) => new URL(file, contentDir).href),
       );
-      const isConfigFile = (file: string) =>
-        configFiles.has(new URL(file, baseDir).href);
+      const isConfigFile = (file: string) => configFiles.has(new URL(file, baseDir).href);
 
       function configForFile(file: string): ContentEntryType | undefined {
         const ext = file.split(".").at(-1);
@@ -399,9 +350,7 @@ export function globplus(options: GlobPlusOptions): Loader {
       });
 
       if (exists && entryFiles.length === 0) {
-        logger.warn(
-          `No files found matching "${options.pattern}" in directory "${relativeBase}"`,
-        );
+        logger.warn(`No files found matching "${options.pattern}" in directory "${relativeBase}"`);
       }
 
       const limit = pLimit(10);
@@ -410,7 +359,7 @@ export function globplus(options: GlobPlusOptions): Loader {
           limit(async () => {
             const entryType = configForFile(entry);
             await syncData(entry, baseDir, entryType);
-          })
+          }),
         ),
       );
 

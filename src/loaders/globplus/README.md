@@ -1,10 +1,11 @@
 # globplus
+
 globplus is an Astro loader which is designed[^1] to be a drop-in replacement for the first-party [`glob`](https://docs.astro.build/en/reference/content-loader-reference/#glob-loader) loader, but expanded upon to provide a hook-based interface modeled around [Astro's own integration API](https://docs.astro.build/en/reference/integrations-reference/); this provides trivial access to every part of `glob`'s lifecycle without requiring a custom loader outright. It is being dogfood-ed heavily in this repository, providing functionality such as:
 
 - Ontology-based metadata extraction, categorizing posts into categories, sub-categories and series (with specific content on index pages) based on directory layout
 - AST-based digest hashing via [`sync-meta.ts`](../../sync-meta.ts), allowing for precise control of when the `updated` date metadata is to be changed
 
->![WARNING]
+> ![WARNING]
 > `globplus` and adjacent modules were written almost entirely by Claude Opus 4.8 on high effort via Claude Code. As a result, the code is unfettered garbage, and despite a multi-day hands-on refactor loop, it remains unstable and will inevitably need a complete rewrite.
 
 ## Usage
@@ -12,6 +13,7 @@ globplus is an Astro loader which is designed[^1] to be a drop-in replacement fo
 If you have written Astro integrations, then globplus will feel very familiar. For a complete list of hooks, see [`types.ts`](./types.ts). There is also a first-party set of `gp:markdown:` hooks via
 
 TODO:
+
 - Fill out hook list (with descriptions) when stable; mimic [Astro hook docs](https://docs.astro.build/en/reference/integrations-reference/#hooks).
 
 ### Custom Integrations

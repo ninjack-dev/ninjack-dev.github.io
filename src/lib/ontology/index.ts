@@ -2,7 +2,7 @@ import { slug as githubSlug } from "github-slugger";
 import { type CollectionEntry, getCollection } from "astro:content";
 import type { DirNode, FileNode } from "../../loaders/globplus/index.ts";
 
-export { ontology } from "./integration.ts"
+export { ontology } from "./integration.ts";
 
 /**
  * Shared content-ontology logic for the `Writings` collection.
@@ -209,10 +209,6 @@ export function classifyTree(tree: DirNode): TreeClassification {
   return { coordsById, nodes };
 }
 
-// ---------------------------------------------------------------------------
-// Page-side view: pair the authoritative node set with collection entries.
-// ---------------------------------------------------------------------------
-
 type WritingEntry = CollectionEntry<"writings">;
 
 /** A category/series node enriched with its published-article count. */
@@ -240,10 +236,7 @@ export interface OntologyView {
  * reflects. Used by {@link getOntology}, which sources the node set from the
  * in-memory store the loader published.
  */
-function makeView(
-  nodes: Map<string, OntologyNode>,
-  entries: WritingEntry[],
-): OntologyView {
+function makeView(nodes: Map<string, OntologyNode>, entries: WritingEntry[]): OntologyView {
   const nodePaths = new Set(nodes.keys());
 
   const isDescription = (entry: WritingEntry): boolean => {
@@ -285,15 +278,15 @@ function makeView(
   // Group nodes by parent once, sorted by name (matching the prior order).
   const childrenByParent = new Map<string | null, OntologyNode[]>();
   for (const node of nodes.values()) {
-    (childrenByParent.get(node.parent) ??
-      childrenByParent.set(node.parent, []).get(node.parent)!).push(node);
+    (
+      childrenByParent.get(node.parent) ?? childrenByParent.set(node.parent, []).get(node.parent)!
+    ).push(node);
   }
   for (const bucket of childrenByParent.values()) {
     bucket.sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  const articlesOf = (nodePath: string): WritingEntry[] =>
-    directArticles.get(nodePath) ?? [];
+  const articlesOf = (nodePath: string): WritingEntry[] => directArticles.get(nodePath) ?? [];
 
   // Recursive published-article count: articles whose immediate node path is
   // this node or descends from it (prefix match on `path/`).
@@ -313,11 +306,9 @@ function makeView(
   };
 }
 
-// ---------------------------------------------------------------------------
 // In-memory ontology store: the loader publishes the authoritative node set,
 // pages read it back through getOntology(). Keyed on a global symbol so it
 // survives module-instance duplication across the loader/page graphs.
-// ---------------------------------------------------------------------------
 
 const STORE_KEY = Symbol.for("ninjack.ontology");
 
@@ -355,8 +346,7 @@ export function publishNodes(nodes: Map<string, OntologyNode>): void {
  */
 export async function getOntology(): Promise<OntologyView> {
   if (cachedView) return cachedView;
-  const livePredicate = ({ data }: WritingEntry) =>
-    import.meta.env.PROD ? data.published : true;
+  const livePredicate = ({ data }: WritingEntry) => (import.meta.env.PROD ? data.published : true);
   const entries = await getCollection("writings", livePredicate);
   const storeNodes = store()[STORE_KEY]?.nodes ?? new Map<string, OntologyNode>();
   cachedView = makeView(storeNodes, entries);

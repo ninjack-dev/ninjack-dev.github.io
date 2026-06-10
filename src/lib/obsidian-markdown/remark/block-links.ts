@@ -1,15 +1,18 @@
-import type { Root, Paragraph, ListItem } from 'mdast';
-import { visit } from 'unist-util-visit';
+import type { Root, Paragraph, ListItem } from "mdast";
+import { visit } from "unist-util-visit";
 
 const BLOCK_ID = /[ \t]+\^([\w-]+)$/;
 
 function applyBlockId(node: Paragraph | ListItem): void {
-  const children = node.type === 'listItem'
-    ? (node.children[0]?.type === 'paragraph' ? node.children[0].children : [])
-    : node.children;
+  const children =
+    node.type === "listItem"
+      ? node.children[0]?.type === "paragraph"
+        ? node.children[0].children
+        : []
+      : node.children;
 
   const lastChild = children.at(-1);
-  if (lastChild?.type !== 'text') return;
+  if (lastChild?.type !== "text") return;
 
   const match = lastChild.value.match(BLOCK_ID);
   if (!match) return;
@@ -23,7 +26,7 @@ function applyBlockId(node: Paragraph | ListItem): void {
 }
 
 export function transformBlockLinks(tree: Root): void {
-  visit(tree, ['paragraph', 'listItem'], (node) => {
+  visit(tree, ["paragraph", "listItem"], (node) => {
     applyBlockId(node as Paragraph | ListItem);
   });
 }

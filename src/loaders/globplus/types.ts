@@ -1,9 +1,5 @@
-import type {
-  AstroConfig,
-  AstroIntegrationLogger,
-  ContentEntryType,
-} from "astro";
-import { glob  } from "astro/loaders";
+import type { AstroConfig, AstroIntegrationLogger, ContentEntryType } from "astro";
+import { glob } from "astro/loaders";
 import type { DataStore } from "astro/loaders";
 
 // The proper data-store `DataEntry` which `glob` uses, *not* the
@@ -55,9 +51,9 @@ export interface FileNode {
   parent: DirNode;
 }
 
-type GlobOptions = Parameters<typeof glob>[0]
+type GlobOptions = Parameters<typeof glob>[0];
 
-export type GenerateIdOptions = Parameters<NonNullable<GlobOptions["generateId"]>>[0]
+export type GenerateIdOptions = Parameters<NonNullable<GlobOptions["generateId"]>>[0];
 
 /**
  * Options accepted by {@link globplus}. Mirrors glob's parity surface plus the
@@ -65,7 +61,7 @@ export type GenerateIdOptions = Parameters<NonNullable<GlobOptions["generateId"]
  */
 export type GlobPlusOptions = GlobOptions & {
   integrations?: GlobPlusIntegration[];
-}
+};
 
 /**
  * The resolved, normalised form of {@link GlobPlusOptions}, exposed read-only to

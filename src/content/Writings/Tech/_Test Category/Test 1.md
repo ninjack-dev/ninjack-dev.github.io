@@ -70,8 +70,7 @@ caespite miserabilis crudele? Caesae Iubam locis, in memorat nostro lux
 inmixtaque pressa. Cum potest culpa, litus pectora.
 
 ```js
-var design_margin = pretest(-2, rom_variable_data + bridgeCapacityDown,
-        pcbGate.domain(2));
+var design_margin = pretest(-2, rom_variable_data + bridgeCapacityDown, pcbGate.domain(2));
 pc(ofComputer, 55 + excelRuntimeMaximize);
 var digitalSwappableBar = commerceOsCorrection - 5;
 icqIcs *= 624788 + aiff_monochrome;
@@ -95,7 +94,7 @@ spreta nepotes poterant, contiguas.
 
 Tigris innumeras vina per nam. Vultus petit conceptas virili omnis durat Libycas
 molimine coniugis, pugnare! Roganti tamen, refovet vel Tenedon ferox, ipse,
-eripuit. Paelice *est* nunc Pentheus pendens, spes melior populifer iste
+eripuit. Paelice _est_ nunc Pentheus pendens, spes melior populifer iste
 eiectatamque levis. Et coiere Quirini fervida adclinavit ignarum Cephaloque hi
 horrenda torpor, diu.
 
@@ -106,11 +105,11 @@ JS(\hat{y} || y) &= \frac{1}{2}(KL(y||\frac{y+\hat{y}}{2}) + KL(\hat{y}||\frac{y
 \end{aligned}
 $$
 
-Sibi cui aequor, neque caeli vires: cum illa *caeca subito*, elige. Per oblita
+Sibi cui aequor, neque caeli vires: cum illa _caeca subito_, elige. Per oblita
 colat caruerunt et labor. This is some $\pow{a,2} + \pow{b,2} = \pow{c,2}$ text.
 
 Est stagni invitaque causa litora repetit pectore, Andron neci aquae adiuvet.
-Deerat misit hunc *perire miseros* Triopeius, nutrit maduerunt imitabere arbusta
+Deerat misit hunc _perire miseros_ Triopeius, nutrit maduerunt imitabere arbusta
 stetit Phoce. Dat sic loqui sui a sine spretis os Pelasga amicis quaeque!
 
 Ferenti membra dixerat insistit fontibus errabant ne innixa fulgentem eminet
@@ -118,7 +117,7 @@ eunti. Et comes. Quatit nisi intellectumque naturae.
 
 Sed avidum inquit rasa concurrere manusque memorant cuius, saepe nervis: culmine
 iacentem contigit. Non tardata iuvenem lacrimas victum ferendo. In ergo evomit
-oceano. Geminas ut silvas iubentem adiciunt cannis *nudae*, nec regis cera
+oceano. Geminas ut silvas iubentem adiciunt cannis _nudae_, nec regis cera
 herbosa, Mavors putatur.
 
 ```cpp
@@ -131,7 +130,7 @@ e_syntax = 1; // hmm
 ```
 
 Demoleon reppulit, vi ferunt posuere, est eodem fronde nec equi **exierat**!
-Densum utque *geminatis causam*. Bellator rumoribus quam nil esse exstimulat
+Densum utque _geminatis causam_. Bellator rumoribus quam nil esse exstimulat
 celanda sustinuere sinamus pendere inter, agnovit huius, viribus. Nereusque
 pectore vituli moveri, et, [troades congreditur](#a-petunt-acceptas-rogant)
 illis.

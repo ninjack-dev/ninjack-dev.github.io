@@ -17,7 +17,7 @@ const writings = defineCollection({
       markdownHooks(),
       obsidian(),
       syncMeta({
-        path: './src/content/Writings/meta.json',
+        path: "./src/content/Writings/meta.json",
         whitelist: [
           "root",
           "heading",
@@ -53,8 +53,8 @@ const tags = defineCollection({
   loader: glob({
     base: "./src/content/Tags",
     pattern: pattern,
-  })
-})
+  }),
+});
 
 const projects = defineCollection({
   loader: glob({

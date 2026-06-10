@@ -26,14 +26,16 @@ const SERVER_HOOKS = ((outDir: URL | null = null) => {
     "astro:config:setup": ({ updateConfig }) => {
       updateConfig({
         vite: {
-          plugins: [{
-            name: "pagefind-client",
-            resolveId(id) {
-              if (id === PAGEFIND_CLIENT) {
-                return { id, external: true };
-              }
+          plugins: [
+            {
+              name: "pagefind-client",
+              resolveId(id) {
+                if (id === PAGEFIND_CLIENT) {
+                  return { id, external: true };
+                }
+              },
             },
-          }],
+          ],
         },
       });
     },
@@ -43,9 +45,7 @@ const SERVER_HOOKS = ((outDir: URL | null = null) => {
     "astro:server:setup": ({ server, logger }) => {
       const pagefindRoot = fileURLToPath(new URL("./pagefind/", outDir!));
       if (!existsSync(pagefindRoot)) {
-        logger.warn(
-          "No search index found. Run a full build to generate one.",
-        );
+        logger.warn("No search index found. Run a full build to generate one.");
       }
 
       server.middlewares.use("/pagefind", async (req, res, next) => {
@@ -56,10 +56,7 @@ const SERVER_HOOKS = ((outDir: URL | null = null) => {
         // Manual mime types in the year of our lord 2026. What has this world come to.
         try {
           const body = await readFile(filePath);
-          res.setHeader(
-            "Content-Type",
-            MIME_TYPES[extname(filePath)] ?? "not my problem",
-          );
+          res.setHeader("Content-Type", MIME_TYPES[extname(filePath)] ?? "not my problem");
           res.end(body);
         } catch {
           next();
@@ -88,10 +85,7 @@ async function buildSearchIndex(dir: URL, logger: AstroIntegrationLogger) {
 
     const newIndexResponse = await pagefind.createIndex();
 
-    const { index } = assertPagefindResponse<pagefind.NewIndexResponse>(
-      newIndexResponse,
-      logger,
-    );
+    const { index } = assertPagefindResponse<pagefind.NewIndexResponse>(newIndexResponse, logger);
 
     const indexingResponse = await index.addDirectory({
       path: fileURLToPath(dir),
@@ -106,10 +100,7 @@ async function buildSearchIndex(dir: URL, logger: AstroIntegrationLogger) {
     const writeFilesResponse = await index.writeFiles({
       outputPath: fileURLToPath(new URL("./pagefind/", dir)),
     });
-    assertPagefindResponse<pagefind.WriteFilesResponse>(
-      writeFilesResponse,
-      logger,
-    );
+    assertPagefindResponse<pagefind.WriteFilesResponse>(writeFilesResponse, logger);
 
     const pagefindTime = performance.now() - now;
     logger.info(

@@ -1,8 +1,8 @@
-import type { Root } from 'mdast';
-import { transformWikiLinks } from './wiki-links.ts';
-import { transformWikiEmbeds } from './wiki-embeds.ts';
-import { transformCallouts } from './callouts.ts';
-import { transformBlockLinks } from './block-links.ts';
+import type { Root } from "mdast";
+import { transformWikiLinks } from "./wiki-links.ts";
+import { transformWikiEmbeds } from "./wiki-embeds.ts";
+import { transformCallouts } from "./callouts.ts";
+import { transformBlockLinks } from "./block-links.ts";
 
 /**
  * Run every Obsidian tokenizer over an MDAST tree, in order. These are pure

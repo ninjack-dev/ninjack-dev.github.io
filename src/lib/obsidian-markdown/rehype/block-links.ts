@@ -1,4 +1,4 @@
-import type { Root } from 'hast';
+import type { Root } from "hast";
 
 /**
  * Obsidian block ids (`… ^block-id`) are handled entirely at the MDAST stage: the

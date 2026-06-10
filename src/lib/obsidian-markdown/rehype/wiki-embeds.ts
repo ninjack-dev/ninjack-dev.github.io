@@ -1,4 +1,4 @@
-import type { Root } from 'hast';
+import type { Root } from "hast";
 
 /**
  * Image embeds (`![[x.png]]`, `![[x.png|WxH]]`) are tokenized by the MDAST stage

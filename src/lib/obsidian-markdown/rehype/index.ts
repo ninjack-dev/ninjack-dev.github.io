@@ -1,8 +1,8 @@
-import type { Root } from 'hast';
-import { transformBlockLinksHast } from './block-links.ts';
-import { transformCalloutsHast } from './callouts.ts';
-import { transformWikiEmbedsHast } from './wiki-embeds.ts';
-import { transformWikiLinksHast } from './wiki-links.ts';
+import type { Root } from "hast";
+import { transformBlockLinksHast } from "./block-links.ts";
+import { transformCalloutsHast } from "./callouts.ts";
+import { transformWikiEmbedsHast } from "./wiki-embeds.ts";
+import { transformWikiLinksHast } from "./wiki-links.ts";
 
 /**
  * Run every Obsidian HAST-stage handler over a HAST tree, in order. Most are

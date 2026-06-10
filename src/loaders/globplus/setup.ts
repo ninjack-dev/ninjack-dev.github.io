@@ -1,10 +1,6 @@
 import type { AstroConfig, AstroIntegrationLogger } from "astro";
 import { runHook } from "./run-hook.ts";
-import type {
-  AddEntryInput,
-  GlobPlusIntegration,
-  ResolvedGlobPlusOptions,
-} from "./types.ts";
+import type { AddEntryInput, GlobPlusIntegration, ResolvedGlobPlusOptions } from "./types.ts";
 
 /**
  * The contributions collected from every integration's `gp:config:setup`,

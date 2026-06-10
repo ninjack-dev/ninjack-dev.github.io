@@ -36,13 +36,8 @@ export default defineConfig({
       theme: "github-dark-dimmed",
     },
     processor: unified({
-      remarkPlugins: [
-        remarkMath,
-        remarkToc,
-      ],
-      rehypePlugins: [
-        rehypeMathjax,
-      ],
+      remarkPlugins: [remarkMath, remarkToc],
+      rehypePlugins: [rehypeMathjax],
       smartypants: {
         ellipses: false,
         backticks: false,

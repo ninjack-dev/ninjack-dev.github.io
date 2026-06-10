@@ -1,4 +1,4 @@
-import type { Data, Literal, Parent, RootContent } from 'mdast';
+import type { Data, Literal, Parent, RootContent } from "mdast";
 
 /**
  * The mdast-util-to-hast directive fields a node may carry on `data` to steer the
@@ -9,11 +9,11 @@ import type { Data, Literal, Parent, RootContent } from 'mdast';
 export interface HastDirectiveData extends Data {
   hName?: string;
   hProperties?: Record<string, unknown>;
-  hChildren?: Array<{ type: 'text'; value: string }>;
+  hChildren?: Array<{ type: "text"; value: string }>;
 }
 
 export interface ObsidianWikiLink extends Literal {
-  type: 'obsidianWikiLink';
+  type: "obsidianWikiLink";
   /** Raw target text (may include `.md` and a path prefix); resolved downstream. */
   target: string;
   alias?: string;
@@ -23,7 +23,7 @@ export interface ObsidianWikiLink extends Literal {
 }
 
 export interface ObsidianEmbed extends Literal {
-  type: 'obsidianEmbed';
+  type: "obsidianEmbed";
   src: string;
   width?: number;
   height?: number;
@@ -31,7 +31,7 @@ export interface ObsidianEmbed extends Literal {
 }
 
 export interface ObsidianCallout extends Parent {
-  type: 'obsidianCallout';
+  type: "obsidianCallout";
   calloutType: string;
   title: string;
   foldable: boolean;
@@ -40,7 +40,7 @@ export interface ObsidianCallout extends Parent {
   data?: HastDirectiveData;
 }
 
-declare module 'mdast' {
+declare module "mdast" {
   interface RootContentMap {
     obsidianCallout: ObsidianCallout;
   }

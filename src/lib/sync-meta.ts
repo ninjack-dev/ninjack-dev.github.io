@@ -21,10 +21,7 @@ type SkeletonNode = { type: NodeTypes; children?: SkeletonNode[] };
  * the hash only reflects additions/removals, not edits. Nodes that do not pass
  * `filter` are removed entirely, along with their subtrees.
  */
-export function buildSkeleton(
-  node: Nodes,
-  filter?: NodeFilter,
-): SkeletonNode | null {
+export function buildSkeleton(node: Nodes, filter?: NodeFilter): SkeletonNode | null {
   if (filter && !filter.check(node.type)) {
     return null;
   }
@@ -46,10 +43,7 @@ export function buildSkeleton(
 /**
  * SHA-256 hash of an MDAST tree's structural skeleton.
  */
-async function structureHash(
-  tree: Root,
-  filter: NodeFilter,
-): Promise<string> {
+async function structureHash(tree: Root, filter: NodeFilter): Promise<string> {
   const skeleton = buildSkeleton(tree, filter);
   const encoded = new TextEncoder().encode(JSON.stringify(skeleton));
   const buffer = await crypto.subtle.digest("SHA-256", encoded);
@@ -125,9 +119,7 @@ export function syncMeta(
         meta = await readMeta(path);
 
         const baseDir = fileURLToPath(base);
-        liveFiles = new Set(
-          files.map((file) => normalize(join(baseDir, file))),
-        );
+        liveFiles = new Set(files.map((file) => normalize(join(baseDir, file))));
       },
 
       "gp:markdown:mdast:postProcess": async ({ id, tree }) => {

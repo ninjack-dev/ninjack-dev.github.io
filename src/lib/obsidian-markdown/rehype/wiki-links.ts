@@ -1,4 +1,4 @@
-import type { Root } from 'hast';
+import type { Root } from "hast";
 
 /**
  * Wiki links are emitted in final form by the MDAST stage: the `obsidian` loader

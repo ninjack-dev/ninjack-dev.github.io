@@ -3,10 +3,7 @@ import type { Root as HastRoot } from "hast";
 import type { Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
 import { entryIdForPath, isArticleFile } from "./ontology/index.ts";
-import type {
-  ObsidianCallout,
-  ObsidianWikiLink,
-} from "./obsidian-markdown/types.ts";
+import type { ObsidianCallout, ObsidianWikiLink } from "./obsidian-markdown/types.ts";
 import { tokenizeObsidian } from "./obsidian-markdown/remark/index.ts";
 import { finalizeObsidian } from "./obsidian-markdown/rehype/index.ts";
 import type { GlobPlusIntegration } from "../loaders/globplus/types.ts";
@@ -64,8 +61,8 @@ export function obsidian(): GlobPlusIntegration {
   function resolveWikiLinks(tree: MdastRoot): void {
     visit(tree, "obsidianWikiLink", (node: ObsidianWikiLink) => {
       const id = resolveTarget(node.target);
-      const label = node.alias ??
-        (node.heading ?? stripMd(node.target).split("/").at(-1) ?? node.target);
+      const label =
+        node.alias ?? node.heading ?? stripMd(node.target).split("/").at(-1) ?? node.target;
 
       if (id === undefined) {
         // Unresolved: render visible but inert, no href.

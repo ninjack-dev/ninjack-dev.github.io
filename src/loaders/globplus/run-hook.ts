@@ -36,16 +36,12 @@ async function withSlowHookWarning<T>({
   logger: AstroIntegrationLogger;
 }): Promise<T> {
   const timeout = setTimeout(() => {
-    logger.info(
-      `Waiting for integration "${name}", hook "${hookName}"...`,
-    );
+    logger.info(`Waiting for integration "${name}", hook "${hookName}"...`);
   }, SLOW_HOOK_MS);
   try {
     return await hookFn();
   } catch (err) {
-    logger.error(
-      `An unhandled error occurred while running the "${hookName}" hook`,
-    );
+    logger.error(`An unhandled error occurred while running the "${hookName}" hook`);
     throw err;
   } finally {
     clearTimeout(timeout);
@@ -56,9 +52,7 @@ async function withSlowHookWarning<T>({
  * Run a single hook on a single integration if present. The `logger` injected
  * into `params` is the integration's forked logger.
  */
-async function runHookInternal<
-  THook extends keyof GlobPlus.IntegrationHooks,
->({
+async function runHookInternal<THook extends keyof GlobPlus.IntegrationHooks>({
   integration,
   hookName,
   logger,
@@ -67,10 +61,7 @@ async function runHookInternal<
   integration: GlobPlusIntegration;
   hookName: THook;
   logger: AstroIntegrationLogger;
-  params: () => Omit<
-    Parameters<GlobPlus.IntegrationHooks[THook]>[0],
-    "logger"
-  >;
+  params: () => Omit<Parameters<GlobPlus.IntegrationHooks[THook]>[0], "logger">;
 }): Promise<ReturnType<GlobPlus.IntegrationHooks[THook]> | undefined> {
   const hook = integration.hooks?.[hookName];
   if (!hook) return undefined;
@@ -109,10 +100,7 @@ export async function runHook<THook extends keyof GlobPlus.IntegrationHooks>({
   integrations: GlobPlusIntegration[];
   hookName: THook;
   logger: AstroIntegrationLogger;
-  params: () => Omit<
-    Parameters<GlobPlus.IntegrationHooks[THook]>[0],
-    "logger"
-  >;
+  params: () => Omit<Parameters<GlobPlus.IntegrationHooks[THook]>[0], "logger">;
 }): Promise<Array<ReturnType<GlobPlus.IntegrationHooks[THook]>>> {
   const results: Array<ReturnType<GlobPlus.IntegrationHooks[THook]>> = [];
   for (const integration of integrations) {

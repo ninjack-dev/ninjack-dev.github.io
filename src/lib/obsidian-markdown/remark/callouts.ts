@@ -1,19 +1,19 @@
-import type { Root, Blockquote, RootContent } from 'mdast';
-import { visit, SKIP } from 'unist-util-visit';
-import type { ObsidianCallout } from '../types.ts';
+import type { Root, Blockquote, RootContent } from "mdast";
+import { visit, SKIP } from "unist-util-visit";
+import type { ObsidianCallout } from "../types.ts";
 
 // Only match title text on the same line (no newlines in title)
 const CALLOUT_MARKER = /^\[!(\w+)\]([+-])?(?:[ \t]+([^\n]+))?/;
 
 export function transformCallouts(tree: Root): void {
-  visit(tree, 'blockquote', (node: Blockquote, index, parent) => {
+  visit(tree, "blockquote", (node: Blockquote, index, parent) => {
     if (!parent || index === undefined) return;
 
     const firstChild = node.children[0];
-    if (firstChild?.type !== 'paragraph') return;
+    if (firstChild?.type !== "paragraph") return;
 
     const firstPhrasing = firstChild.children[0];
-    if (firstPhrasing?.type !== 'text') return;
+    if (firstPhrasing?.type !== "text") return;
 
     const match = firstPhrasing.value.match(CALLOUT_MARKER);
     if (!match) return;
@@ -21,7 +21,7 @@ export function transformCallouts(tree: Root): void {
     const [, calloutType, foldableFlag, customTitle] = match;
     // After the marker, the remainder of the first text node may start with \n (soft break)
     // followed by the body. Strip that leading newline.
-    const afterMarker = firstPhrasing.value.slice(match[0].length).replace(/^\n/, '');
+    const afterMarker = firstPhrasing.value.slice(match[0].length).replace(/^\n/, "");
 
     let bodyChildren: RootContent[];
     if (afterMarker) {
@@ -39,11 +39,11 @@ export function transformCallouts(tree: Root): void {
     }
 
     const callout: ObsidianCallout = {
-      type: 'obsidianCallout',
+      type: "obsidianCallout",
       calloutType: calloutType.toLowerCase(),
       title: customTitle?.trim() ?? calloutType.toUpperCase(),
       foldable: foldableFlag !== undefined,
-      defaultOpen: foldableFlag !== '-',
+      defaultOpen: foldableFlag !== "-",
       children: bodyChildren,
     };
 

@@ -16,11 +16,7 @@ Nefandis concreta vocatur ratus, nec et mediis ita tamen Herculei dictas huius q
 - Ponti alter
 
 ```js
-var design_margin = pretest(
-  -2,
-  rom_variable_data + bridgeCapacityDown,
-  pcbGate.domain(2),
-);
+var design_margin = pretest(-2, rom_variable_data + bridgeCapacityDown, pcbGate.domain(2));
 pc(ofComputer, 55 + excelRuntimeMaximize);
 var digitalSwappableBar = commerceOsCorrection - 5;
 icqIcs *= 624788 + aiff_monochrome;

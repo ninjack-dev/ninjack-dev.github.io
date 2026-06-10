@@ -1,5 +1,5 @@
-import type { Element, ElementContent, Root } from 'hast';
-import { visit } from 'unist-util-visit';
+import type { Element, ElementContent, Root } from "hast";
+import { visit } from "unist-util-visit";
 
 /**
  * Marker property the MDAST stage stamps onto a callout node's `data.hProperties`
@@ -19,9 +19,10 @@ export interface CalloutMarkerProps {
 }
 
 function isCalloutMarker(node: Element): boolean {
-  return node.tagName === 'div' &&
-    (node.properties?.dataObsidianCallout === '' ||
-      node.properties?.dataObsidianCallout === true);
+  return (
+    node.tagName === "div" &&
+    (node.properties?.dataObsidianCallout === "" || node.properties?.dataObsidianCallout === true)
+  );
 }
 
 /**
@@ -34,30 +35,30 @@ function isCalloutMarker(node: Element): boolean {
  */
 function rebuildCallout(node: Element): void {
   const props = node.properties ?? {};
-  const calloutType = String(props.dataCalloutType ?? 'note');
-  const title = String(props.dataCalloutTitle ?? '');
-  const foldable = props.dataCalloutFoldable === 'true';
-  const defaultOpen = props.dataCalloutDefaultOpen === 'true';
+  const calloutType = String(props.dataCalloutType ?? "note");
+  const title = String(props.dataCalloutTitle ?? "");
+  const foldable = props.dataCalloutFoldable === "true";
+  const defaultOpen = props.dataCalloutDefaultOpen === "true";
 
   const body = node.children;
-  const titleText: ElementContent = { type: 'text', value: title };
+  const titleText: ElementContent = { type: "text", value: title };
 
   if (foldable) {
     const summary: Element = {
-      type: 'element',
-      tagName: 'summary',
+      type: "element",
+      tagName: "summary",
       properties: {},
       children: [titleText],
     };
     const bodyEl: Element = {
-      type: 'element',
-      tagName: 'div',
-      properties: { className: ['callout-body'] },
+      type: "element",
+      tagName: "div",
+      properties: { className: ["callout-body"] },
       children: body,
     };
-    node.tagName = 'details';
+    node.tagName = "details";
     node.properties = {
-      className: ['callout'],
+      className: ["callout"],
       dataCallout: calloutType,
       ...(defaultOpen ? { open: true } : {}),
     };
@@ -66,25 +67,25 @@ function rebuildCallout(node: Element): void {
   }
 
   const titleEl: Element = {
-    type: 'element',
-    tagName: 'div',
-    properties: { className: ['callout-title'] },
+    type: "element",
+    tagName: "div",
+    properties: { className: ["callout-title"] },
     children: [titleText],
   };
   const bodyEl: Element = {
-    type: 'element',
-    tagName: 'div',
-    properties: { className: ['callout-body'] },
+    type: "element",
+    tagName: "div",
+    properties: { className: ["callout-body"] },
     children: body,
   };
-  node.tagName = 'div';
-  node.properties = { className: ['callout'], dataCallout: calloutType };
+  node.tagName = "div";
+  node.properties = { className: ["callout"], dataCallout: calloutType };
   node.children = [titleEl, bodyEl];
 }
 
 /** Rewrite all callout marker `<div>`s in a HAST tree into final markup. */
 export function transformCalloutsHast(tree: Root): void {
-  visit(tree, 'element', (node: Element) => {
+  visit(tree, "element", (node: Element) => {
     if (isCalloutMarker(node)) rebuildCallout(node);
   });
 }

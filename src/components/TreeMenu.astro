@@ -538,8 +538,6 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     }
   }
 
-  // --- Alignment pinning for hover expansion ---
-
   let alignmentRestoreTimer: number | null = null;
 
   function pinAlignment(): void {
@@ -584,8 +582,6 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     clearTimeout(alignmentRestoreTimer);
     alignmentRestoreTimer = null;
   }
-
-  // --- Mouse / hover state machine ---
 
   container.addEventListener("mouseover", (e: MouseEvent) => {
     const target = (e.target as HTMLElement).closest(".menu-item");
