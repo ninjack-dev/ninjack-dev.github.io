@@ -99,7 +99,7 @@ export function obsidian(): GlobPlusIntegration {
   function stampCalloutMarkers(tree: MdastRoot): void {
     visit(tree, "obsidianCallout", (node: ObsidianCallout) => {
       node.data = {
-        ...(node.data ?? {}),
+        ...node.data,
         hName: "div",
         hProperties: {
           dataObsidianCallout: "",

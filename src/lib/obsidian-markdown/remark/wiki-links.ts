@@ -5,7 +5,7 @@ import type { ObsidianWikiLink } from "../types.ts";
 // Matches [[target]], [[target#fragment]], [[target|alias]] — but NOT ![[...]].
 // Pure tokenizer (ADR 0004): captures raw text only; no path resolution, no
 // slugging, no tree knowledge. The `obsidian` loader integration resolves these.
-const WIKI_LINK = /(?<!\!)\[\[([^\]|#\n]+?)(?:#([^\]|\n]+))?(?:\|([^\]\n]+))?\]\]/g;
+const WIKI_LINK = /(?<!!)\[\[([^\]|#\n]+?)(?:#([^\]|\n]+))?(?:\|([^\]\n]+))?\]\]/g;
 
 function splitOnWikiLinks(children: PhrasingContent[]): PhrasingContent[] {
   const result: PhrasingContent[] = [];

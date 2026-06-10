@@ -22,7 +22,7 @@ function applyBlockId(node: Paragraph | ListItem): void {
   // per-node `Data` doesn't declare it without importing that package, so stamp
   // it through a structural cast. The default mdast→hast conversion reads it.
   const data = (node.data ??= {}) as { hProperties?: Record<string, unknown> };
-  data.hProperties = { ...(data.hProperties ?? {}), id: match[1] };
+  data.hProperties = { ...data.hProperties, id: match[1] };
 }
 
 export function transformBlockLinks(tree: Root): void {
