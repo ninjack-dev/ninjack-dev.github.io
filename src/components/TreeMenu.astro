@@ -298,7 +298,6 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   if (!el) throw new Error("TreeMenu root not found");
 
   const container: HTMLElement = el;
-  const panelsContainer = container.parentElement as HTMLElement;
 
   /** Current keyboard-selection path (indices into each level). */
   let path: number[] = [];
@@ -404,11 +403,9 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     // Sticky branches: previously-opened items whose parent is still
     // in the current hover path's ancestor chain.  This prevents the
     // menu layout from shifting when the cursor moves between siblings.
-    if (stickyBranches.has(itemPath.join(","))) return true;
-    if (hoverPath !== null) {
-      for (const branchStr of stickyBranches) {
-        if (isPrefix(itemPath, branchStr.split(",").map(Number))) return true;
-      }
+    for (const branchStr of stickyBranches) {
+      const branchPath = branchStr.split(",").map(Number);
+      if (arraysEqual(itemPath, branchPath) || isPrefix(itemPath, branchPath)) return true;
     }
 
     return false;
@@ -455,7 +452,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     path.push(n - 1);
     hoverPath = null;
     stickyBranches.clear();
-    pinHoverAlignment();
+    pinAlignment();
     updateDOM();
   }
 
@@ -497,7 +494,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     hoverPath = null;
     stickyBranches.clear();
     updateDOM();
-    if (wasHovering) scheduleAlignmentRestore();
+    if (wasHovering) scheduleRestore();
   }
 
   function handleKey(e: KeyboardEvent): void {
@@ -541,65 +538,47 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
   let alignmentRestoreTimer: number | null = null;
 
-  /**
-   * Pin the tree menu's top edge so children only expand downward.
-   *
-   * Reads the current offset from the flex container, then switches to
-   * `align-self: flex-start` with a compensating margin-top that keeps
-   * the visual position stable.  The placeholder sibling is pinned the
-   * same way so neither panel shifts when the flex line grows.
-   */
-  function pinHoverAlignment(): void {
+  function pinAlignment(): void {
     if (container.style.alignSelf === "flex-start") return;
 
-    const panelsRect = panelsContainer.getBoundingClientRect();
-    const treeRect = container.getBoundingClientRect();
+    const panelsEl = container.parentElement!;
+    const offset = container.getBoundingClientRect().top - panelsEl.getBoundingClientRect().top;
 
     container.style.alignSelf = "flex-start";
-    container.style.marginTop = (treeRect.top - panelsRect.top) + "px";
-    container.style.marginBottom = "0";
+    container.style.marginTop = offset + "px";
 
-    // Also pin the placeholder so it doesn't re-centre when the flex line grows.
     const placeholder =
-      panelsContainer.querySelector<HTMLElement>(".home-panel-placeholder");
+      panelsEl.querySelector<HTMLElement>(".home-panel-placeholder");
     if (placeholder) {
-      const phRect = placeholder.getBoundingClientRect();
+      const phOffset = placeholder.getBoundingClientRect().top - panelsEl.getBoundingClientRect().top;
       placeholder.style.alignSelf = "flex-start";
-      placeholder.style.marginTop = (phRect.top - panelsRect.top) + "px";
-      placeholder.style.marginBottom = "0";
+      placeholder.style.marginTop = phOffset + "px";
     }
   }
 
-  function restoreDefaultAlignment(): void {
+  function restoreAlignment(): void {
     container.style.alignSelf = "";
     container.style.marginTop = "";
-    container.style.marginBottom = "";
 
     const placeholder =
-      panelsContainer.querySelector<HTMLElement>(".home-panel-placeholder");
+      container.parentElement?.querySelector<HTMLElement>(".home-panel-placeholder");
     if (placeholder) {
       placeholder.style.alignSelf = "";
       placeholder.style.marginTop = "";
-      placeholder.style.marginBottom = "";
     }
   }
 
-  function scheduleAlignmentRestore(): void {
-    if (alignmentRestoreTimer !== null) {
-      clearTimeout(alignmentRestoreTimer);
-    }
-    // Match the CSS grid-template-rows transition duration (350ms).
+  function scheduleRestore(): void {
+    clearTimeout(alignmentRestoreTimer);
     alignmentRestoreTimer = window.setTimeout(() => {
       alignmentRestoreTimer = null;
-      restoreDefaultAlignment();
+      restoreAlignment();
     }, 350);
   }
 
-  function cancelAlignmentRestore(): void {
-    if (alignmentRestoreTimer !== null) {
-      clearTimeout(alignmentRestoreTimer);
-      alignmentRestoreTimer = null;
-    }
+  function cancelRestore(): void {
+    clearTimeout(alignmentRestoreTimer);
+    alignmentRestoreTimer = null;
   }
 
   // --- Mouse / hover state machine ---
@@ -654,29 +633,22 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     // deepest non-shared ancestor to the sticky set so it persists
     // (instead of collapsing and shifting sibling positions).
     if (prevHoverPath !== null) {
-      let i = 0;
-      while (
-        i < prevHoverPath.length &&
-        i < hoverPath.length &&
-        prevHoverPath[i] === hoverPath[i]
-      ) {
-        i++;
-      }
-      if (i < prevHoverPath.length) {
-        const staleEntry = prevHoverPath.slice(0, i + 1);
+      const divergeIdx = prevHoverPath.findIndex(
+        (val, idx) => val !== hoverPath[idx],
+      );
+      if (divergeIdx >= 0 && divergeIdx < prevHoverPath.length) {
+        const staleEntry = prevHoverPath.slice(0, divergeIdx + 1);
         if (staleEntry.length > 1) {
           newSticky.add(staleEntry.join(","));
         }
       }
-      // If we've moved into a deeper level of the same branch, clear
-      // the sticky set — ancestors handle openness via isPrefix.
     }
 
     stickyBranches = newSticky;
 
     if (!wasHovering) {
-      cancelAlignmentRestore();
-      pinHoverAlignment();
+      cancelRestore();
+      pinAlignment();
     }
 
     updateDOM();
@@ -687,8 +659,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       hoverPath = null;
       stickyBranches.clear();
       updateDOM();
-      // Let the close animation finish before restoring default alignment.
-      scheduleAlignmentRestore();
+      scheduleRestore();
     }
   });
 
