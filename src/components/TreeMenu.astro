@@ -292,8 +292,18 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
   const container: HTMLElement = el;
 
-  /** Current selection path (indices into each level). */
+  /** Current keyboard-selection path (indices into each level). */
   let path: number[] = [];
+
+  /** Path of the item currently under the mouse cursor, or null in keyboard mode. */
+  let hoverPath: number[] | null = null;
+
+  /**
+   * Snapshot of hoverPath taken at the moment a keypress transitions from
+   * hover to keyboard mode. The mouseover handler uses this to suppress the
+   * DOM-triggered synthetic mouseover that fires right after layout changes.
+   */
+  let hoverBeforeKeypress: number[] | null = null;
 
   /** Get the DOM element at a given path. */
   function elAtPath(p: number[]): HTMLElement | null {
@@ -352,26 +362,41 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
     return path.length - 1;
   }
 
+  function arraysEqual(a: number[], b: number[]): boolean {
+    if (a.length !== b.length) return false;
+    return a.every((v, i) => v === b[i]);
+  }
+
+  function isPrefix(prefix: number[], of: number[]): boolean {
+    if (prefix.length >= of.length) return false;
+    return prefix.every((p, i) => p === of[i]);
+  }
+
   function isSelected(itemPath: number[]): boolean {
-    if (itemPath.length !== path.length) return false;
-    return itemPath.every((p, i) => p === path[i]);
+    return arraysEqual(itemPath, path);
   }
 
   function isAncestor(itemPath: number[]): boolean {
-    if (itemPath.length >= path.length) return false;
-    return itemPath.every((p, i) => p === path[i]);
+    return isPrefix(itemPath, path);
   }
 
   function shouldOpenChildren(itemPath: number[]): boolean {
+    // Keyboard path: ancestors and the selected item are always open.
     if (isAncestor(itemPath)) return true;
-    if (isSelected(itemPath)) {
-      return hasChildren(itemPath);
+    if (isSelected(itemPath)) return hasChildren(itemPath);
+
+    // Hover path: the hovered item and its ancestors are open.
+    if (hoverPath !== null) {
+      if (arraysEqual(itemPath, hoverPath)) return hasChildren(itemPath);
+      if (isPrefix(itemPath, hoverPath)) return true;
     }
+
     return false;
   }
 
   /**
-   * Reconcile the DOM with the current `path`.
+   * Reconcile the DOM with the current `path` (keyboard) and `hoverPath`
+   * (mouse-hover) state machines.
    *
    * Toggles `.selected` on each item and `.open` on each
    * children-wrap — CSS handles the reveal/clip animation via
@@ -394,6 +419,14 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
   }
 
   function handleNumber(n: number): void {
+    // When transitioning from hover to keyboard mode, adopt the hovered
+    // item as the starting keyboard path so that findFrontier() operates
+    // at the correct depth (not root level).
+    if (path.length === 0 && hoverPath !== null) {
+      hoverBeforeKeypress = hoverPath;
+      path = [...hoverPath];
+    }
+
     const frontier = findFrontier();
     if (frontier < 0) return;
     const count = countAtLevel(frontier);
@@ -401,6 +434,7 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
     path = path.slice(0, frontier);
     path.push(n - 1);
+    hoverPath = null;
     updateDOM();
   }
 
@@ -438,6 +472,8 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
 
   function clearSelection(): void {
     path = [];
+    hoverPath = null;
+    hoverBeforeKeypress = null;
     updateDOM();
   }
 
@@ -477,6 +513,50 @@ const { labelCh, depth: widestDepth } = computeWidestNode(items);
       clearSelection();
     }
   }
+
+  // --- Mouse / hover state machine ---
+
+  container.addEventListener("mouseover", (e: MouseEvent) => {
+    const target = (e.target as HTMLElement).closest(".menu-item");
+    if (!target) return;
+
+    const raw = target.getAttribute("data-path");
+    if (!raw) return;
+
+    const itemPath = raw.split(",").map(Number);
+
+    // Already hovering over this item — no change.
+    if (hoverPath && arraysEqual(hoverPath, itemPath)) return;
+
+    // Hovering over the keyboard-selected item — it is locked,
+    // so hover does not affect it.
+    if (path.length > 0 && arraysEqual(path, itemPath)) return;
+
+    // Suppress the synthetic mouseover that browsers sometimes fire
+    // when DOM layout changes right after a keypress (the collapsing
+    // animation can re-home the cursor over the same element).
+    if (hoverBeforeKeypress !== null && arraysEqual(itemPath, hoverBeforeKeypress)) {
+      hoverBeforeKeypress = null;
+      return;
+    }
+    hoverBeforeKeypress = null;
+
+    // Hovering over anything else clears the keyboard selection
+    // (unlocks the previously selected item) and enters hover mode.
+    if (path.length > 0) {
+      path = [];
+    }
+
+    hoverPath = itemPath;
+    updateDOM();
+  });
+
+  container.addEventListener("mouseleave", () => {
+    if (hoverPath !== null) {
+      hoverPath = null;
+      updateDOM();
+    }
+  });
 
   document.addEventListener("keydown", handleKey);
   updateDOM();
