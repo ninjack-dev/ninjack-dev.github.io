@@ -6,9 +6,9 @@ import { transformBlockLinks } from "./block-links.ts";
 
 /**
  * Run every Obsidian tokenizer over an MDAST tree, in order. These are pure
- * syntax tokenizers (ADR 0004): they emit nodes carrying raw target / fragment
+ * syntax tokenizers: they emit nodes carrying raw target / fragment
  * text and do no resolution or slugging. Href resolution for the emitted
- * `obsidianWikiLink` nodes is the `obsidian` loader integration's job.
+ * `obsidianWikiLink` nodes is the loader's job.
  *
  * Embeds are intentionally tokenized to relative `image` nodes here so they ride
  * the existing `imagePaths` → `assetImports` pipeline; the caller must run this

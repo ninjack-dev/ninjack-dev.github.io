@@ -1,6 +1,6 @@
 import { slug as githubSlug } from "github-slugger";
 import type { Root as HastRoot } from "hast";
-import type { Root as MdastRoot } from "mdast";
+import type { Image, Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
 import { entryIdForPath, isArticleFile } from "./ontology/index.ts";
 import type { ObsidianCallout, ObsidianWikiLink } from "./obsidian-markdown/types.ts";
@@ -36,8 +36,10 @@ function stripMd(value: string): string {
  *  - At `gp:markdown:hast:postProcess` it finalizes callouts (and any other
  *    HAST-stage handlers).
  *
- * Image embeds need no resolution: the tokenizer emits relative `image` nodes
- * that ride the loader's `imagePaths`/`assetImports` pipeline.
+ *  - At `gp:markdown:mdast:postProcess` it also resolves image-embed `Image`
+ *    nodes (those carrying a `wiki-embed` class) by prepending
+ *    `./attachments/` to their raw `url`, so they ride the loader's
+ *    `imagePaths`/`assetImports` pipeline.
  */
 export function obsidian(): GlobPlusIntegration {
   // Lowercased basename (sans `.md`) → entry id. First file wins on collision,
@@ -112,6 +114,25 @@ export function obsidian(): GlobPlusIntegration {
     });
   }
 
+  /**
+   * Resolve every `Image` node stamped with a `wiki-embed` class by prepending
+   * `./attachments/` to its raw `url`. These nodes are produced by the
+   * wiki-embeds tokenizer with raw embed targets (e.g.
+   * {@code ![[image.png|200x100]]} becomes an `Image` with `url: "image.png"`);
+   * the prefix is applied here so the path is relative for the loader's
+   * `imagePaths`/`assetImports` pipeline during the mdast→hast conversion.
+   */
+  function resolveEmbedHrefs(tree: MdastRoot): void {
+    visit(tree, "image", (node: Image) => {
+      const hProps = (node.data as Record<string, unknown> | undefined)
+        ?.hProperties as Record<string, unknown> | undefined;
+      if (!hProps) return;
+      const classes = hProps.className;
+      if (!Array.isArray(classes) || !classes.includes("wiki-embed")) return;
+      node.url = `./attachments/${node.url}`;
+    });
+  }
+
   return {
     name: "gp:obsidian",
     hooks: {
@@ -136,6 +157,7 @@ export function obsidian(): GlobPlusIntegration {
         tokenizeObsidian(tree);
         resolveWikiLinks(tree);
         stampCalloutMarkers(tree);
+        resolveEmbedHrefs(tree);
       },
 
       "gp:markdown:hast:postProcess": ({ tree }: { tree: HastRoot }) => {

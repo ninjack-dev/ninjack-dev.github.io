@@ -26,14 +26,15 @@ function splitOnEmbeds(children: PhrasingContent[]): PhrasingContent[] {
         const width = widthStr ? parseInt(widthStr, 10) : undefined;
         const height = heightStr ? parseInt(heightStr, 10) : undefined;
         // Stamp a `wiki-embed` class (plus optional W×H) via `hProperties` so the
-        // embed `<img>` is distinguishable from a plain Markdown image in HAST,
-        // and so Astro's image collection still sees a relative `image` node.
+        // embed `<img>` is distinguishable from a plain Markdown image in HAST.
+        // The URL is kept raw (no `./attachments/` prefix); the `obsidian` loader
+        // integration resolves it in `gp:markdown:mdast:postProcess`.
         const hProperties: Record<string, unknown> = { className: ["wiki-embed"] };
         if (width !== undefined) hProperties.width = width;
         if (height !== undefined) hProperties.height = height;
         const img: Image = {
           type: "image",
-          url: `./attachments/${src}`,
+          url: src,
           alt: src,
           data: { hProperties },
         };
