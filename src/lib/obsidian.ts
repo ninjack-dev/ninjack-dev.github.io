@@ -2,7 +2,7 @@ import { slug as githubSlug } from "github-slugger";
 import type { Root as HastRoot } from "hast";
 import type { Image, Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
-import { entryIdForPath, isArticleFile } from "./ontology/index.ts";
+import { isArticleFile } from "./ontology/index.ts";
 import type { ObsidianCallout, ObsidianWikiLink } from "./obsidian-markdown/types.ts";
 import { tokenizeObsidian } from "./obsidian-markdown/remark/index.ts";
 import { finalizeObsidian } from "./obsidian-markdown/rehype/index.ts";
@@ -20,12 +20,11 @@ function stripMd(value: string): string {
  * tokenizers; this loader integration owns everything that needs the content
  * tree or the slug authority:
  *
- *  - At `gp:files:resolved` it builds a wiki-link resolution index from the
- *    loader's matched file set, mapping raw targets (by lowercased basename and
- *    by lowercased relative path, both sans `.md`) to canonical entry ids. Ids
- *    are derived through the shared {@link entryIdForPath} rule (same
- *    `github-slugger` per-segment protocol the loader's `generateIdDefault`
- *    uses), so resolved hrefs match real entry ids exactly.
+ *  - At `gp:files:resolved` it captures the mapping from collection-relative
+ *    paths to the file URLs that will receive entry ids.
+ *  - At `gp:entry:data` it builds a wiki-link resolution index from the
+ *    loader's finalized entry ids, mapping raw targets (by lowercased basename
+ *    and by lowercased relative path, both sans `.md`) to canonical entry ids.
  *  - At `gp:markdown:mdast:postProcess` it runs the tokenizers, then resolves
  *    every `obsidianWikiLink` into final `<a>` markup by stamping `data.hName` /
  *    `hProperties` / `hChildren`. Targets resolve to `/writings/<id>`; `#heading`
@@ -33,13 +32,12 @@ function stripMd(value: string): string {
  *    ids); `#^blockId` fragments become `#<blockId>` (matching the id the
  *    block-link tokenizer stamps). Unresolved targets render as
  *    `<span class="wiki-link broken">` with no href, never crashing the build.
- *  - At `gp:markdown:hast:postProcess` it finalizes callouts (and any other
- *    HAST-stage handlers).
- *
  *  - At `gp:markdown:mdast:postProcess` it also resolves image-embed `Image`
  *    nodes (those carrying a `wiki-embed` class) by prepending
  *    `./attachments/` to their raw `url`, so they ride the loader's
  *    `imagePaths`/`assetImports` pipeline.
+ *  - At `gp:markdown:hast:postProcess` it finalizes callouts (and any other
+ *    HAST-stage handlers).
  */
 export function obsidian(): GlobPlusIntegration {
   // Lowercased basename (sans `.md`) → entry id. First file wins on collision,
@@ -47,6 +45,9 @@ export function obsidian(): GlobPlusIntegration {
   let byBasename = new Map<string, string>();
   // Lowercased relative POSIX path (sans `.md`) → entry id.
   let byRelPath = new Map<string, string>();
+  // Absolute file URL href → collection-relative path for article files.
+  // Populated in `gp:files:resolved`, consumed in `gp:entry:data`.
+  let absUrlToRelPath = new Map<string, string>();
 
   /** Resolve a raw wiki target to an entry id, or `undefined` if unknown. */
   function resolveTarget(rawTarget: string): string | undefined {
@@ -76,7 +77,7 @@ export function obsidian(): GlobPlusIntegration {
         return;
       }
 
-      let href = `/writings/${id}`;
+      let href = `/writings/${id}`; // TODO: Can we resolve the path from an integration hook?
       if (node.blockId) {
         href += `#${node.blockId}`;
       } else if (node.heading) {
@@ -136,21 +137,30 @@ export function obsidian(): GlobPlusIntegration {
   return {
     name: "gp:obsidian",
     hooks: {
-      "gp:files:resolved": ({ files }) => {
+      "gp:files:resolved": ({ base, files }) => {
+        // Reset the index and rebuild the URL→path map at the start of a load.
+        // The resolution index itself is populated in `gp:entry:data` where the
+        // loader's finalized entry ids are available.
         byBasename = new Map();
         byRelPath = new Map();
+        absUrlToRelPath = new Map();
         for (const rel of files) {
-          // Shared article rule: only Markdown article files get an id/index.
           if (!isArticleFile(rel)) continue;
-          const fileName = rel.split("/").at(-1)!;
-          const id = entryIdForPath(rel);
-
-          const relKey = stripMd(rel).toLowerCase();
-          if (!byRelPath.has(relKey)) byRelPath.set(relKey, id);
-
-          const baseKey = stripMd(fileName).toLowerCase();
-          if (!byBasename.has(baseKey)) byBasename.set(baseKey, id);
+          absUrlToRelPath.set(new URL(encodeURI(rel), base).href, rel);
         }
+      },
+
+      "gp:entry:data": ({ id, fileURL }) => {
+        const rel = absUrlToRelPath.get(fileURL.href);
+        if (!rel) return;
+
+        const fileName = rel.split("/").at(-1)!;
+
+        const relKey = stripMd(rel).toLowerCase();
+        if (!byRelPath.has(relKey)) byRelPath.set(relKey, id);
+
+        const baseKey = stripMd(fileName).toLowerCase();
+        if (!byBasename.has(baseKey)) byBasename.set(baseKey, id);
       },
 
       "gp:markdown:mdast:postProcess": ({ tree }) => {
