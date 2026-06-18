@@ -6,6 +6,7 @@ import remarkToc from "remark-toc";
 import pagefind from "./src/integrations/pagefind.ts";
 
 export default defineConfig({
+  site: "https://ninjack.dev",
   image: {
     service: passthroughImageService(),
   },
