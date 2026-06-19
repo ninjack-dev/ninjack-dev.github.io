@@ -9,15 +9,14 @@ export async function GET(context: APIContext) {
   const published = writings
     .filter((entry) => entry.data.published)
     .sort(
-      // TODO: Anything but this
       (a, b) =>
-        (b.data.published ?? new Date(0)).getTime() -
-        (a.data.published ?? new Date(0)).getTime(),
+        (b.data.date ?? new Date(0)).getTime() -
+        (a.data.date ?? new Date(0)).getTime(),
     );
 
   return rss({
-    ...baseRssOptions(context.site),
-    title: "ninjack.dev — Writings",
+    ...baseRssOptions(context.site ?? "ninjack.dev"),
+    title: "Jackson Breit's Writings",
     description:
       "Thoughts on software development, media, and other curiosities from Jackson.",
     items: toRssItems(published),

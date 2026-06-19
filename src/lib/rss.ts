@@ -5,8 +5,9 @@ type WritingMeta = {
   id: string;
 };
 
+// TODO: this return type is icky, can we do this better?
 /** Options shared by every RSS feed on the site. */
-export function baseRssOptions(site: URL): Partial<RSSOptions> {
+export function baseRssOptions(site: URL | string): Omit<Partial<RSSOptions>, "site"> & { site: string | URL } {
   return {
     site,
     trailingSlash: false,
