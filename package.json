@@ -2,6 +2,7 @@
   "name": "temp",
   "version": "0.0.1",
   "type": "module",
+  "packageManager": "pnpm@11.8.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -33,6 +34,7 @@
     "remark-toc": "^9.0.0",
     "tinyglobby": "^0.2.15",
     "typescript": "^6.0.3",
+    "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.3"
   },
   "devDependencies": {
