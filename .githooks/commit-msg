@@ -20,7 +20,7 @@ case "$message" in
     ;;
   *:*)
     # Format: type: description
-    type_part=$(printf '%s' "$message" | sed 's/^\([a-z]*\):.*/\1/')
+    type_part=$(printf '%s' "$message" | sed 's/^\([a-z]*\)!\?:.*/\1/')
     desc_part=$(printf '%s' "$message" | sed 's/^[a-z]*:[[:space:]]*//')
     ;;
   *)
