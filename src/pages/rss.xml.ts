@@ -14,7 +14,7 @@ export async function GET(context) {
   return rss({
     title: "ninjack.dev — Writings",
     description:
-      "Thoughts on software, games, and other curiosities from ninjack.",
+      "Thoughts on software development, media, and other curiosities from Jackson.",
     site: context.site,
     trailingSlash: false,
     stylesheet: "/rss/styles.xsl",
