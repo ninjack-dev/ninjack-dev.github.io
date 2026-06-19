@@ -4,6 +4,8 @@ import type { CollectionEntry } from "astro:content";
 import { getOntology } from "../../lib/ontology/index.ts";
 import type { OntologyView } from "../../lib/ontology/index.ts";
 
+import { baseRssOptions, toRssItems } from "../../lib/rss.ts";
+
 type WritingEntry = CollectionEntry<"writings">;
 
 export const getStaticPaths = (async () => {
@@ -23,17 +25,10 @@ export async function GET({ props, site }) {
   const articles = collectArticles(view, nodePath);
 
   return rss({
+    ...baseRssOptions(site),
     title: `ninjack.dev — ${node.name}`,
     description: `Writings in the ${node.name} category`,
-    site,
-    trailingSlash: false,
-    stylesheet: "/rss/styles.xsl",
-    items: articles.map((entry) => ({
-      title: entry.data.title ?? entry.id.split("/").at(-1)!,
-      pubDate: entry.data.date ?? new Date(),
-      description: entry.data.description,
-      link: `/writings/${entry.id}`,
-    })),
+    items: toRssItems(articles),
   });
 }
 

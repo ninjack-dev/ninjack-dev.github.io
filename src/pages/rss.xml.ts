@@ -1,6 +1,8 @@
 import rss from "@astrojs/rss";
 import { getCollection } from "astro:content";
 
+import { baseRssOptions, toRssItems } from "../lib/rss.ts";
+
 export async function GET(context) {
   const writings = await getCollection("writings");
   const published = writings
@@ -12,17 +14,10 @@ export async function GET(context) {
     );
 
   return rss({
+    ...baseRssOptions(context.site),
     title: "ninjack.dev — Writings",
     description:
       "Thoughts on software development, media, and other curiosities from Jackson.",
-    site: context.site,
-    trailingSlash: false,
-    stylesheet: "/rss/styles.xsl",
-    items: published.map((entry) => ({
-      title: entry.data.title ?? entry.id.split("/").at(-1)!,
-      pubDate: entry.data.date ?? new Date(),
-      description: entry.data.description,
-      link: `/writings/${entry.id}`,
-    })),
+    items: toRssItems(published),
   });
 }
