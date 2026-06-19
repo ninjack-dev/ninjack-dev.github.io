@@ -1,4 +1,3 @@
-import type { APIContext } from "astro";
 import type { RSSOptions } from "@astrojs/rss";
 
 type WritingMeta = {
