@@ -38,11 +38,11 @@ const writings = defineCollection({
     ],
   }),
   schema: z.object({
-    title: z.string().optional(),
+    title: z.string(),
     description: z.string().optional(),
     category: z.array(z.string()).optional(),
     series: z.string().nullable().optional(),
-    date: z.coerce.date().optional(),
+    date: z.coerce.date(),
     updated: z.coerce.date().optional(),
     tags: z.array(z.string()).optional(),
     published: z.boolean().default(false),

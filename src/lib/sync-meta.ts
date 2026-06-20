@@ -54,6 +54,7 @@ async function structureHash(tree: Root, filter: NodeFilter): Promise<string> {
 
 const MetaEntry = z.object({
   published: z.coerce.date(),
+  date: z.coerce.date(),
   updated: z.coerce.date(),
   hash: z.string(),
 });
@@ -122,13 +123,35 @@ export function syncMeta(
         liveFiles = new Set(files.map((file) => normalize(join(baseDir, file))));
       },
 
+      "gp:entry:data": ({ id, fileURL, data }) => {
+        if (!data.title) {
+          const basename = decodeURIComponent(fileURL.pathname.split("/").at(-1) ?? "");
+          data.title = basename.replace(/\.[^.]+$/, "");
+        }
+
+        const published = data.published ?? false;
+        if (published) {
+          const prior = meta.get(id);
+          if (prior) {
+            data.date = prior.date;
+          } else {
+            const date = new Date();
+            data.date = date;
+            meta.set(id, { published: now, date, updated: now, hash: "" });
+          }
+        } else {
+          data.date = new Date();
+        }
+      },
+
       "gp:markdown:mdast:postProcess": async ({ id, tree }) => {
         const hash = await structureHash(tree, filter);
         const prior = meta.get(id);
         if (!prior) {
-          meta.set(id, { published: now, updated: now, hash });
+          meta.set(id, { published: now, date: now, updated: now, hash });
         } else if (prior.hash !== hash) {
-          meta.set(id, { published: prior.published, updated: now, hash });
+          prior.updated = now;
+          prior.hash = hash;
         }
       },
 
