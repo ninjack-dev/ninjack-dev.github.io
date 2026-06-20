@@ -51,7 +51,7 @@ const SERVER_HOOKS = ((outDir: URL | null = null) => {
       server.middlewares.use("/pagefind", async (req, res, next) => {
         const urlPath = (req.url ?? "/").split("?")[0];
         const filePath = resolve(pagefindRoot, "." + urlPath);
-        if (!filePath.startsWith(pagefindRoot)) return  next();
+        if (!filePath.startsWith(pagefindRoot)) return next();
 
         // Manual mime types in the year of our lord 2026. What has this world come to.
         try {

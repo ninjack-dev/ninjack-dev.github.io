@@ -32,13 +32,8 @@ export async function GET({ props, site }) {
   });
 }
 
-function collectArticles(
-  view: OntologyView,
-  nodePath: string,
-): WritingEntry[] {
+function collectArticles(view: OntologyView, nodePath: string): WritingEntry[] {
   const direct = view.articlesOf(nodePath);
-  const nested = view
-    .childrenOf(nodePath)
-    .flatMap((child) => collectArticles(view, child.path));
+  const nested = view.childrenOf(nodePath).flatMap((child) => collectArticles(view, child.path));
   return [...direct, ...nested];
 }

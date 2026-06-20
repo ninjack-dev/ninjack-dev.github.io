@@ -9,16 +9,13 @@ export async function GET(context: APIContext) {
   const published = writings
     .filter((entry) => entry.data.published)
     .sort(
-      (a, b) =>
-        (b.data.date ?? new Date(0)).getTime() -
-        (a.data.date ?? new Date(0)).getTime(),
+      (a, b) => (b.data.date ?? new Date(0)).getTime() - (a.data.date ?? new Date(0)).getTime(),
     );
 
   return rss({
     ...baseRssOptions(context.site ?? "ninjack.dev"),
-    title: "Jackson Breit's Writings",
-    description:
-      "Thoughts on software development, media, and other curiosities from Jackson.",
+    title: "Jackson Breit",
+    description: "Jackson's thoughts on software development, media, and other curiosities",
     items: toRssItems(published),
   });
 }

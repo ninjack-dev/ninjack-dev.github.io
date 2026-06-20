@@ -2,7 +2,6 @@
   "name": "temp",
   "version": "0.0.1",
   "type": "module",
-  "packageManager": "pnpm@11.8.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -41,5 +40,6 @@
     "oxfmt": "^0.54.0",
     "oxlint": "^1.69.0",
     "oxlint-tsgolint": "^0.23.0"
-  }
+  },
+  "packageManager": "pnpm@11.8.0"
 }
