@@ -53,9 +53,8 @@ async function structureHash(tree: Root, filter: NodeFilter): Promise<string> {
 }
 
 const MetaEntry = z.object({
-  published: z.coerce.date(),
   date: z.coerce.date(),
-  updated: z.coerce.date(),
+  updated: z.coerce.date().optional(),
   hash: z.string(),
 });
 const MetaStore = z.map(z.string(), MetaEntry);
@@ -87,8 +86,8 @@ function buildFilter(options: FilterOption): NodeFilter {
 
 /**
  * `sync-meta` is a globplus integration that maintains a per-collection
- * `meta.json` recording of when a given entry was `published` and when it
- * was last `updated` (tracked with a `hash` of its structural skeleton).
+ * `meta.json` recording each entry's first-publish `date` and its most
+ * recent `updated` date (tracked with a `hash` of its structural skeleton).
  */
 export function syncMeta(
   options: {
@@ -137,7 +136,7 @@ export function syncMeta(
           } else {
             const date = new Date();
             data.date = date;
-            meta.set(id, { published: now, date, updated: now, hash: "" });
+            meta.set(id, { date, hash: "" });
           }
         } else {
           data.date = new Date();
@@ -148,7 +147,7 @@ export function syncMeta(
         const hash = await structureHash(tree, filter);
         const prior = meta.get(id);
         if (!prior) {
-          meta.set(id, { published: now, date: now, updated: now, hash });
+          meta.set(id, { date: now, hash });
         } else if (prior.hash !== hash) {
           prior.updated = now;
           prior.hash = hash;
