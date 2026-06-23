@@ -133,10 +133,6 @@ export function syncMeta(
           const prior = meta.get(id);
           if (prior) {
             data.date = prior.date;
-          } else {
-            const date = new Date();
-            data.date = date;
-            meta.set(id, { date, digest: "" });
           }
         } else {
           data.date = new Date();
