@@ -128,8 +128,7 @@ export function syncMeta(
           data.title = basename.replace(/\.[^.]+$/, "");
         }
 
-        const published = data.published ?? false;
-        if (published) {
+        if (data.published) {
           const prior = meta.get(id);
           if (prior) {
             data.date = prior.date;
