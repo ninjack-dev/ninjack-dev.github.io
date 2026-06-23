@@ -41,9 +41,9 @@ export function buildSkeleton(node: Nodes, filter?: NodeFilter): SkeletonNode | 
 }
 
 /**
- * SHA-256 hash of an MDAST tree's structural skeleton.
+ * Builds a SHA-256 digest of an MDAST tree's structural skeleton.
  */
-async function structureHash(tree: Root, filter: NodeFilter): Promise<string> {
+async function buildStructuralDigest(tree: Root, filter: NodeFilter): Promise<string> {
   const skeleton = buildSkeleton(tree, filter);
   const encoded = new TextEncoder().encode(JSON.stringify(skeleton));
   const buffer = await crypto.subtle.digest("SHA-256", encoded);
@@ -55,7 +55,7 @@ async function structureHash(tree: Root, filter: NodeFilter): Promise<string> {
 const MetaEntry = z.object({
   date: z.coerce.date(),
   updated: z.coerce.date().optional(),
-  hash: z.string(),
+  digest: z.string(),
 });
 const MetaStore = z.map(z.string(), MetaEntry);
 
@@ -87,7 +87,7 @@ function buildFilter(options: FilterOption): NodeFilter {
 /**
  * `sync-meta` is a globplus integration that maintains a per-collection
  * `meta.json` recording each entry's first-publish `date` and its most
- * recent `updated` date (tracked with a `hash` of its structural skeleton).
+ * recent `updated` date (tracked with a `digest` of its structural skeleton).
  */
 export function syncMeta(
   options: {
@@ -136,7 +136,7 @@ export function syncMeta(
           } else {
             const date = new Date();
             data.date = date;
-            meta.set(id, { date, hash: "" });
+            meta.set(id, { date, digest: "" });
           }
         } else {
           data.date = new Date();
@@ -144,13 +144,13 @@ export function syncMeta(
       },
 
       "gp:markdown:mdast:postProcess": async ({ id, tree }) => {
-        const hash = await structureHash(tree, filter);
+        const digest = await buildStructuralDigest(tree, filter);
         const prior = meta.get(id);
         if (!prior) {
-          meta.set(id, { date: now, hash });
-        } else if (prior.hash !== hash) {
+          meta.set(id, { date: now, digest: digest });
+        } else if (prior.digest !== digest) {
           prior.updated = now;
-          prior.hash = hash;
+          prior.digest = digest;
         }
       },
 
