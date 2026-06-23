@@ -1,7 +1,6 @@
 ---
 title: yeah
 date: 2026-05-11
-published: true
 ---
 
 # A petunt acceptas rogant

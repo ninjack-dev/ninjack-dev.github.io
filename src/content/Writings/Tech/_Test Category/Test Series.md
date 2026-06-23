@@ -1,7 +1,6 @@
 ---
 title: Test Series
 description: A description for the Test Series, rendered above its article list.
-published: true
 ---
 
 # About the Test Series

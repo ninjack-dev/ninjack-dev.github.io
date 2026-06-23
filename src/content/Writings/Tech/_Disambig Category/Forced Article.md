@@ -1,6 +1,5 @@
 ---
 title: Forced Article
-published: true
 ---
 
 # Forced Article

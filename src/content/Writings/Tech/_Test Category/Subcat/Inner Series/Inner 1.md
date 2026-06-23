@@ -1,6 +1,5 @@
 ---
 title: Inner 1
-published: true
 ---
 
 # Inner 1

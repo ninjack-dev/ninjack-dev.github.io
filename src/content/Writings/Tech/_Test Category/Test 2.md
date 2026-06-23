@@ -1,6 +1,5 @@
 ---
 title: Test 2
-published: true
 ---
 
 # A petunt acceptas rogant
