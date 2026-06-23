@@ -6,7 +6,7 @@ import { obsidian } from "./lib/obsidian.ts";
 import { ontology } from "./lib/ontology/index.ts";
 import { syncMeta } from "./lib/sync-meta.ts";
 
-const pattern = ["**/*.md", ...(!import.meta.env.DEV ? ["!**/_*/**", "!**/_*"] : [])];
+const pattern = ["**/*.md", ...(import.meta.env.PROD ? ["!**/_*/**", "!**/_*"] : [])];
 
 const writings = defineCollection({
   loader: globplus({
