@@ -85,11 +85,9 @@ function buildFilter(options: FilterOption): NodeFilter {
 }
 
 /**
- * `sync-meta` is a globplus integration that maintains a per-collection
- * `meta.json` recording each entry's first-publish `date` and its most
- * recent `updated` date (tracked with a `digest` of its structural skeleton).
+ * `build-meta` derives and records the `date`, `updated`, and an MDAST-based `digest` for entries in a collection.
  */
-export function syncMeta(
+export function buildMeta(
   options: {
     path: string | URL;
   } & FilterOption,
@@ -108,7 +106,7 @@ export function syncMeta(
   let rootDir: string;
 
   return {
-    name: "sync-meta",
+    name: "build-meta",
     hooks: {
       "gp:config:setup": ({ config }) => {
         rootDir = fileURLToPath(config.root);

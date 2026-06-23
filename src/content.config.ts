@@ -4,7 +4,7 @@ import { z } from "astro/zod";
 import { globplus, markdownHooks } from "./loaders/globplus/index.ts";
 import { obsidian } from "./lib/obsidian.ts";
 import { ontology } from "./lib/ontology/index.ts";
-import { syncMeta } from "./lib/sync-meta.ts";
+import { buildMeta } from "./lib/build-meta.ts";
 
 const pattern = ["**/*.md", ...(import.meta.env.PROD ? ["!**/_*/**", "!**/_*"] : [])];
 
@@ -16,7 +16,7 @@ const writings = defineCollection({
       ontology(),
       markdownHooks(),
       obsidian(),
-      syncMeta({
+      buildMeta({
         path: "./src/content/Writings/meta.json",
         whitelist: [
           "root",
