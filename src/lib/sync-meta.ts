@@ -108,7 +108,7 @@ export function syncMeta(
   let rootDir: string;
 
   return {
-    name: "gp:sync-meta",
+    name: "sync-meta",
     hooks: {
       "gp:config:setup": ({ config }) => {
         rootDir = fileURLToPath(config.root);
@@ -123,6 +123,7 @@ export function syncMeta(
       },
 
       "gp:entry:data": ({ id, fileURL, data }) => {
+        // TODO: Don't fall back to the title. It should *always* be set.
         if (!data.title) {
           const basename = decodeURIComponent(fileURL.pathname.split("/").at(-1) ?? "");
           data.title = basename.replace(/\.[^.]+$/, "");
@@ -166,12 +167,15 @@ export function syncMeta(
           if (liveFiles.has(abs)) liveIds.add(entry.id);
         }
 
-        for (const id of Object.keys(meta)) {
+        for (const id of meta.keys()) {
           if (!liveIds.has(id)) meta.delete(id);
         }
 
         if (import.meta.env.PROD) {
           await writeFile(path, JSON.stringify(meta, null, 2) + "\n", "utf-8");
+        }
+        if (import.meta.env.DEV) {
+          console.log("[sync-meta] MetaStore:", meta);
         }
       },
     },
