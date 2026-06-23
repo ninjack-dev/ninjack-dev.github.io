@@ -135,7 +135,7 @@ export function syncMeta(
             data.date = prior.date;
           }
         } else {
-          data.date = new Date();
+          data.date = now;
         }
       },
 
