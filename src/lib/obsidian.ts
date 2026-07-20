@@ -7,6 +7,7 @@ import type { ObsidianCallout, ObsidianWikiLink } from "./obsidian-markdown/type
 import { tokenizeObsidian } from "./obsidian-markdown/remark/index.ts";
 import { finalizeObsidian } from "./obsidian-markdown/rehype/index.ts";
 import type { GlobPlusIntegration } from "../loaders/globplus/types.ts";
+import { displayTag } from "./tags.ts";
 import "../loaders/globplus/integrations/markdown/index.ts";
 
 /** Strip a trailing `.md` (case-insensitive) and surrounding whitespace. */
@@ -150,7 +151,7 @@ export function obsidian(): GlobPlusIntegration {
         }
       },
 
-      "gp:entry:data": ({ id, fileURL }) => {
+      "gp:entry:data": ({ id, fileURL, data }) => {
         const rel = absUrlToRelPath.get(fileURL.href);
         if (!rel) return;
 
@@ -161,6 +162,24 @@ export function obsidian(): GlobPlusIntegration {
 
         const baseKey = stripMd(fileName).toLowerCase();
         if (!byBasename.has(baseKey)) byBasename.set(baseKey, id);
+
+        // Clean each tag from Obsidian wiki-link form to a plain display name,
+        // then deduplicate. For example, all of `Neovim`, `[[Neovim]]`,
+        // `[[Tags/Neovim]]`, `[[Tags/Neovim|Neovim]]`, `[[Tags/Neovim.md]]`
+        // collapse to the single tag `Neovim`.
+        if (Array.isArray(data.tags)) {
+          const seen = new Set<string>();
+          const cleaned: string[] = [];
+          for (const raw of data.tags) {
+            if (typeof raw !== "string") continue;
+            const tag = displayTag(raw);
+            if (tag && !seen.has(tag)) {
+              seen.add(tag);
+              cleaned.push(tag);
+            }
+          }
+          data.tags = cleaned;
+        }
       },
 
       "gp:markdown:mdast:postProcess": ({ tree }) => {
