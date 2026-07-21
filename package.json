@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "postinstall": "node scripts/download-pagefind-types.ts"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.9",

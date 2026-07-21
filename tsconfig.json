@@ -4,6 +4,9 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "allowImportingTsExtensions": true,
+    "paths": {
+      "/pagefind/pagefind.js": ["./node_modules/pagefind-js/index.d.ts"]
+    },
     "plugins": [
       {
         "name": "@astrojs/ts-plugin"
