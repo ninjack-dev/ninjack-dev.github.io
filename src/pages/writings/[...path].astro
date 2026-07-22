@@ -53,7 +53,7 @@ const view = await getOntology();
       const title = entry.data.title ?? entry.id.split("/").at(-1)!;
       return (
         <BaseLayout title={title} description={entry.data.description}>
-          <main class="prose">
+          <main class="prose" data-pagefind-body>
             <h1>{title}</h1>
             {entry.data.description && (
               <blockquote>{entry.data.description}</blockquote>
