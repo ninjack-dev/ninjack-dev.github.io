@@ -1,0 +1,32 @@
+---
+import { getEntry, render } from "astro:content";
+import type { OntologyView } from "../../lib/ontology/index.ts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Giscus from "../Giscus.astro";
+
+interface Props {
+  entryId: string;
+  view: OntologyView;
+}
+
+const { entryId, view } = Astro.props;
+const entry = await getEntry("writings", entryId);
+if (!entry) return Astro.redirect("/404");
+const node = view.nodes.get(entryId)!;
+const { Content } = await render(entry);
+const title = entry.data.title ?? entry.id.split("/").at(-1)!;
+---
+
+<BaseLayout title={title} description={entry.data.description}>
+  <!-- TODO: once the category/series can be found elsewhere in the tree, move the relevant pagefind meta attributes to those -->
+  {entry.data.category && (<meta data-pagefind-meta={`category:${entry.data.category.join(" ")}`} />)}
+  {entry.data.series && (<meta data-pagefind-meta={`series:${entry.data.series}`} />)}
+  <main class="prose" data-pagefind-body>
+    <h1>{title}</h1>
+    {entry.data.description && (
+      <blockquote>{entry.data.description}</blockquote>
+    )}
+    <Content />
+    <Giscus />
+  </main>
+</BaseLayout>

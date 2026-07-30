@@ -1,0 +1,62 @@
+---
+import type { OntologyView } from "../../lib/ontology/index.ts";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+interface Props {
+  nodeId: string;
+  view: OntologyView;
+}
+
+const { nodeId, view } = Astro.props;
+const node = view.nodes.get(nodeId)!;
+const children = view.childrenOf(nodeId);
+const subcategories = children.filter((c) => c.kind === "category");
+const seriesNodes = children.filter((c) => c.kind === "series");
+const looseArticles = view.articlesOf(nodeId);
+---
+
+<BaseLayout title={node.name}>
+  <main class="prose">
+    <h1>{node.name}</h1>
+    {subcategories.length > 0 && (
+      <>
+        <h2>Subcategories</h2>
+        <ul>
+          {subcategories.map((c) => (
+            <li>
+              <a href={`/writings/${c.path}`}>{c.name}</a> (
+              {view.count(c.path)})
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+    {seriesNodes.length > 0 && (
+      <>
+        <h2>Series</h2>
+        <ul>
+          {seriesNodes.map((c) => (
+            <li>
+              <a href={`/writings/${c.path}`}>{c.name}</a> (
+              {view.count(c.path)})
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+    {looseArticles.length > 0 && (
+      <>
+        <h2>Articles</h2>
+        <ul>
+          {looseArticles.map((entry) => (
+            <li>
+              <a href={`/writings/${entry.id}`}>
+                {entry.data.title ?? entry.id.split("/").at(-1)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+  </main>
+</BaseLayout>

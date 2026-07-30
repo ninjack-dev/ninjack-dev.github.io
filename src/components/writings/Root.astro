@@ -1,10 +1,12 @@
 ---
+import type { OntologyView } from "../../lib/ontology/index.ts";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getOntology } from "../../lib/ontology/index.ts";
 
-// Shared, publish-filtered ontology view (prod: published only; dev: all).
-const view = await getOntology();
+interface Props {
+  view: OntologyView;
+}
 
+const { view } = Astro.props;
 const topCategories = view.childrenOf(null).filter((n) => n.kind === "category");
 // Loose articles directly at the Writings root (degraded case): no node path.
 const rootArticles = view.articles.filter(
