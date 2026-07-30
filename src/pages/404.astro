@@ -1,57 +1,77 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro'
-import Tumbleweed from '../components/Tumbleweed.astro'
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Tumbleweed from "../components/Tumbleweed.astro";
 ---
+
 <BaseLayout title="404 — Not Found">
-<style>
-  .not-found {
-    text-align: center;
-  }
+  <style>
+    .not-found {
+      text-align: center;
+    }
 
-  #not-found-suggestion {
-    opacity: 0;
-    transform: translateY(0.5rem);
-    transition: opacity 200ms ease, transform 200ms ease;
-  }
+    #not-found-suggestion {
+      opacity: 0;
+      transform: translateY(0.5rem);
+      transition:
+        opacity 200ms ease,
+        transform 200ms ease;
+    }
 
-  #not-found-suggestion.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-</style>
-<div class="not-found">
-  <h1>404</h1>
-  <p>Page not found.</p>
-  <p id="not-found-suggestion"></p>
-</div>
-<Tumbleweed chance={0.2} />
-<script>
-  async function suggestNearestPage() {
-    const path = decodeURIComponent(window.location.pathname);
-    const terms = path
-      .replace(/^\/|\/$/g, '')
-      .replace(/\.[^.]+$/, '')
-      .split(/[/\-_]+/)
-      .filter((t) => t.length > 1)
-      .join(' ');
+    #not-found-suggestion.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+  <div class="not-found">
+    <h1>404</h1>
+    <p>Page not found.</p>
+    <p id="not-found-suggestion"></p>
+  </div>
+  <Tumbleweed chance={0.2} />
+  <script>
+    // This approach is very flawed; Pagefind doesn't offer a way to search *just* metadata, so we search *everything*
+    // and give enormous weight to relevant metadata fields. Stupid, but the simplest approach for now.
 
-    if (!terms) return;
+    // These values are arbitrary and need some proper calibration with fuzzing against desired positives/negatives.
+    const META_WEIGHTS = {
+      title: 1000,
+      category: 100,
+      series: 100,
+    };
+    const SCORE_THRESHOLD = 20;
 
-    const pagefind = await import('/pagefind/pagefind.js') as PagefindInstance;
-    const { results } = await pagefind.search(terms);
-    if (results.length === 0) return;
+    async function suggestNearestPage() {
+      const path = decodeURIComponent(window.location.pathname);
+      const terms = path.replace(/^\/|\/$/g, "").replace(/[/\-_]+/g, " ");
 
-    const best = await results[0].data();
-    if (!best.meta?.title || !best.url) return;
+      if (!terms) return;
 
-    const link = document.createElement('a');
-    link.href = best.url;
-    link.textContent = best.meta.title;
+      const pagefind =
+        (await import("/pagefind/pagefind.js")) as PagefindInstance;
 
-    const suggestion = document.getElementById('not-found-suggestion')!;
-    suggestion.append('Did you mean ', link, '?');
-    suggestion.classList.add('visible');
-  }
-  suggestNearestPage();
-</script>
+      pagefind.options({
+        excerptLength: 1,
+        ranking: {
+          metaWeights: META_WEIGHTS,
+        },
+      });
+
+      const { results } = await pagefind.search(terms);
+
+      if (results.length === 0) return;
+      if (results[0].score < SCORE_THRESHOLD) return;
+
+      const best = await results[0].data();
+      if (!best.meta?.title || !best.url) return;
+
+      const link = document.createElement("a");
+      link.href = best.url;
+      link.textContent = best.meta.title;
+
+      const suggestion = document.getElementById("not-found-suggestion")!;
+      suggestion.append("Did you mean ", link, "?");
+      suggestion.classList.add("visible");
+    }
+    suggestNearestPage();
+  </script>
 </BaseLayout>
