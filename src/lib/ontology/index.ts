@@ -63,6 +63,10 @@ export function entryIdForPath(relPath: string): string {
   return slugPath(segments);
 }
 
+export function isDevOnlyPath(path: string): boolean {
+  return path.split("/").some((segment) => segment.startsWith("_"));
+}
+
 /** The kind of a directory node in the ontology. */
 export type NodeKind = "category" | "series";
 
@@ -340,15 +344,19 @@ export function publishNodes(nodes: Map<string, OntologyNode>): void {
 /**
  * The single page-side accessor for the ontology view. Reads the published node
  * set from the global store (empty if none published) and pairs it with the
- * publish-filtered `Writings` entries — full set in dev, `published`-only in
- * prod. The result is memoized; {@link publishNodes} clears the memo so a dev
+ * `Writings` entries — full set in dev, `published` and non-dev-only in prod.
+ * The result is memoized; {@link publishNodes} clears the memo so a dev
  * reload re-publishes and the next call rebuilds.
  */
 export async function getOntology(): Promise<OntologyView> {
   if (cachedView) return cachedView;
-  const livePredicate = ({ data }: WritingEntry) => (import.meta.env.PROD ? data.published : true);
+  const livePredicate = (entry: WritingEntry) =>
+    import.meta.env.PROD ? entry.data.published && !isDevOnlyPath(entry.id) : true;
   const entries = await getCollection("writings", livePredicate);
   const storeNodes = store()[STORE_KEY]?.nodes ?? new Map<string, OntologyNode>();
-  cachedView = makeView(storeNodes, entries);
+  const liveNodes = import.meta.env.PROD
+    ? new Map([...storeNodes].filter(([, node]) => !isDevOnlyPath(node.path)))
+    : storeNodes;
+  cachedView = makeView(liveNodes, entries);
   return cachedView;
 }

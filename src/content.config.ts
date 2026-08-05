@@ -6,7 +6,7 @@ import { obsidian } from "./lib/obsidian.ts";
 import { ontology } from "./lib/ontology/index.ts";
 import { buildMeta } from "./lib/build-meta.ts";
 
-const pattern = ["**/*.md", ...(import.meta.env.PROD ? ["!**/_*/**", "!**/_*"] : [])];
+const pattern = ["**/*.md"];
 
 const writings = defineCollection({
   loader: globplus({
@@ -45,7 +45,7 @@ const writings = defineCollection({
     date: z.coerce.date(),
     updated: z.coerce.date().optional(),
     tags: z.array(z.string()).optional(),
-    published: z.boolean().default(import.meta.env.DEV),
+    published: z.boolean().default(false),
   }),
 });
 

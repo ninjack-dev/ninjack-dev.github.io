@@ -2,11 +2,13 @@
 import { getCollection, getEntry, render } from "astro:content";
 import { slug as githubSlug } from "github-slugger";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getOntology } from "../../lib/ontology/index.ts";
+import { getOntology, isDevOnlyPath } from "../../lib/ontology/index.ts";
 import { displayTag, normalizeTag } from "../../lib/tags.ts";
 
 export async function getStaticPaths() {
-  const definedTags = await getCollection("tags");
+  const definedTags = await getCollection("tags", (entry) =>
+    import.meta.env.PROD ? !isDevOnlyPath(entry.id) : true,
+  );
 
   // Shared, publish-filtered ontology view (prod: published only; dev: all).
   // Real articles only — exclude series-description entries.
@@ -45,7 +47,7 @@ export async function getStaticPaths() {
 }
 
 const { tagId, label, posts } = Astro.props;
-const tagEntry = tagId ? await getEntry("tags", tagId) : undefined;
+const tagEntry = await getEntry("tags", tagId);
 const Content = tagEntry ? (await render(tagEntry)).Content : undefined;
 const heading = label ?? Astro.params.tag;
 ---
