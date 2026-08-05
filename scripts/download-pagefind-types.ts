@@ -4,21 +4,18 @@
  */
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from "node:fs";
 
-const packageJsonPath = resolve(import.meta.dirname, '../node_modules/pagefind/package.json');
-const version = JSON.parse(readFileSync(packageJsonPath, 'utf-8')).version as string;
+const packageJsonPath = resolve(import.meta.dirname, "../node_modules/pagefind/package.json");
+const version = JSON.parse(readFileSync(packageJsonPath, "utf-8")).version as string;
 
 const TYPES_URL = new URL(
   `https://raw.githubusercontent.com/Pagefind/pagefind/v${version}/pagefind_web_js/types/index.d.ts`,
 );
 
-const OUT = resolve(
-  import.meta.dirname,
-  "../node_modules/pagefind-js/",
-);
+const OUT = resolve(import.meta.dirname, "../node_modules/pagefind-js/");
 
-mkdirSync(OUT, { recursive: true })
+mkdirSync(OUT, { recursive: true });
 
 let response: Response;
 try {
@@ -30,9 +27,7 @@ try {
 }
 
 if (!response.ok) {
-  throw new Error(
-    `Fetching Pagefind types failed: ${response.status} ${response.statusText}`,
-  );
+  throw new Error(`Fetching Pagefind types failed: ${response.status} ${response.statusText}`);
 }
 
 const TYPES = await response.text();

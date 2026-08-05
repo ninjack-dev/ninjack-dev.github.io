@@ -85,8 +85,8 @@ function buildFilter(options: FilterOption): NodeFilter {
 }
 
 /**
- * `build-meta` derives and records the `date` and `updated` metadata fields, 
- * storing them in a collection-colocated `meta.json` file keyed based on entry ID, 
+ * `build-meta` derives and records the `date` and `updated` metadata fields,
+ * storing them in a collection-colocated `meta.json` file keyed based on entry ID,
  * alongside an MDAST-based `digest` which is used to modify `updated`.
  */
 export function buildMeta(

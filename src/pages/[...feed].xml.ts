@@ -19,10 +19,7 @@ type WritingEntry = CollectionEntry<"writings">;
 export const getStaticPaths = (async () => {
   const paths: { params: { feed: string } }[] = [];
 
-  paths.push(
-    { params: { feed: "rss" } },
-    { params: { feed: "atom" } },
-  );
+  paths.push({ params: { feed: "rss" } }, { params: { feed: "atom" } });
 
   // Ontology node paths omit the `writings/` prefix, so we prepend it for the URL.
   const view = await getOntology();
@@ -40,9 +37,7 @@ export const getStaticPaths = (async () => {
 
 function collectArticles(view: OntologyView, nodePath: string): WritingEntry[] {
   const direct = view.articlesOf(nodePath);
-  const nested = view.childrenOf(nodePath).flatMap((child) =>
-    collectArticles(view, child.path),
-  );
+  const nested = view.childrenOf(nodePath).flatMap((child) => collectArticles(view, child.path));
   return [...direct, ...nested];
 }
 
@@ -79,8 +74,7 @@ export const GET = (async ({ params, site, url }) => {
   // stripping the `writings/` prefix) form the ontology node path.
   const segments = params.feed!.split("/");
   const feedType = segments.pop()!;
-  const categoryPath: string | null =
-    segments.length > 1 ? segments.slice(1).join("/") : null;
+  const categoryPath: string | null = segments.length > 1 ? segments.slice(1).join("/") : null;
 
   // context.site is a `URL` object in Astro 7.x, not a string.
   const siteUrl = (site ?? new URL("https://ninjack.dev")).href.replace(/\/$/, "");
@@ -91,9 +85,7 @@ export const GET = (async ({ params, site, url }) => {
   ];
 
   entries.sort(
-    (a, b) =>
-      (b.data.date ?? new Date(0)).getTime() -
-      (a.data.date ?? new Date(0)).getTime(),
+    (a, b) => (b.data.date ?? new Date(0)).getTime() - (a.data.date ?? new Date(0)).getTime(),
   );
 
   const node = categoryPath ? view.nodes.get(categoryPath) : null;
