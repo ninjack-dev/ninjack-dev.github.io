@@ -1,4 +1,5 @@
 import type { Root } from "mdast";
+import { transformComments } from "./comments.ts";
 import { transformWikiLinks } from "./wiki-links.ts";
 import { transformWikiEmbeds } from "./wiki-embeds.ts";
 import { transformCallouts } from "./callouts.ts";
@@ -15,6 +16,8 @@ import { transformBlockLinks } from "./block-links.ts";
  * before Astro's image-collection step (i.e. as an MDAST-stage transform).
  */
 export function tokenizeObsidian(tree: Root): void {
+  // Comments must be parsed first.
+  transformComments(tree);
   transformWikiEmbeds(tree);
   transformWikiLinks(tree);
   transformCallouts(tree);

@@ -3,7 +3,11 @@ import type { Root as HastRoot } from "hast";
 import type { Image, Root as MdastRoot } from "mdast";
 import { visit } from "unist-util-visit";
 import { isArticleFile } from "./ontology/index.ts";
-import type { ObsidianCallout, ObsidianWikiLink } from "./obsidian-markdown/types.ts";
+import type {
+  ObsidianCallout,
+  ObsidianComment,
+  ObsidianWikiLink,
+} from "./obsidian-markdown/types.ts";
 import { tokenizeObsidian } from "./obsidian-markdown/remark/index.ts";
 import { finalizeObsidian } from "./obsidian-markdown/rehype/index.ts";
 import type { GlobPlusIntegration } from "../loaders/globplus/types.ts";
@@ -37,8 +41,11 @@ function stripMd(value: string): string {
  *    nodes (those carrying a `wiki-embed` class) by prepending
  *    `./attachments/` to their raw `url`, so they ride the loader's
  *    `imagePaths`/`assetImports` pipeline.
- *  - At `gp:markdown:hast:postProcess` it finalizes callouts (and any other
- *    HAST-stage handlers).
+ *  - At `gp:markdown:mdast:postProcess` it stamps `comment` nodes with a marker
+ *    `<span>` so the mdast→hast conversion preserves them; the HAST stage
+ *    renders comments as darkened text in dev mode and drops them in production.
+ *  - At `gp:markdown:hast:postProcess` it finalizes callouts and comments (and
+ *    any other HAST-stage handlers).
  */
 export function obsidian(): GlobPlusIntegration {
   // Lowercased basename (sans `.md`) → entry id. First file wins on collision,
@@ -117,6 +124,26 @@ export function obsidian(): GlobPlusIntegration {
   }
 
   /**
+   * Stamp each `comment` with a marker `<span>` so the default mdast→hast
+   * conversion preserves it (an unstamped unknown node would leak its raw
+   * `%%…%%` value as visible text). The `obsidian-comment` class doubles as the
+   * marker the HAST handler matches on, and as the darkening hook in dev mode.
+   * The text child carries the raw source span verbatim; the HAST handler
+   * {@link finalizeObsidian} strips the `%%` delimiters when it renders
+   * comments in dev mode and drops the span entirely in production.
+   */
+  function stampCommentMarkers(tree: MdastRoot): void {
+    visit(tree, "comment", (node: ObsidianComment) => {
+      node.data = {
+        ...node.data,
+        hName: "span",
+        hProperties: { className: ["obsidian-comment"] },
+        hChildren: [{ type: "text", value: node.value }],
+      };
+    });
+  }
+
+  /**
    * Resolve every `Image` node stamped with a `wiki-embed` class by prepending
    * `./attachments/` to its raw `url`. These nodes are produced by the
    * wiki-embeds tokenizer with raw embed targets (e.g.
@@ -126,8 +153,9 @@ export function obsidian(): GlobPlusIntegration {
    */
   function resolveEmbedHrefs(tree: MdastRoot): void {
     visit(tree, "image", (node: Image) => {
-      const hProps = (node.data as Record<string, unknown> | undefined)
-        ?.hProperties as Record<string, unknown> | undefined;
+      const hProps = (node.data as Record<string, unknown> | undefined)?.hProperties as
+        | Record<string, unknown>
+        | undefined;
       if (!hProps) return;
       const classes = hProps.className;
       if (!Array.isArray(classes) || !classes.includes("wiki-embed")) return;
@@ -186,6 +214,7 @@ export function obsidian(): GlobPlusIntegration {
         tokenizeObsidian(tree);
         resolveWikiLinks(tree);
         stampCalloutMarkers(tree);
+        stampCommentMarkers(tree);
         resolveEmbedHrefs(tree);
       },
 

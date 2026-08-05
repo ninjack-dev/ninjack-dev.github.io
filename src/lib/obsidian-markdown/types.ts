@@ -40,12 +40,25 @@ export interface ObsidianCallout extends Parent {
   data?: HastDirectiveData;
 }
 
+export interface ObsidianComment extends Literal {
+  type: "comment";
+  /**
+   * The verbatim source span, `%%` delimiters included — mirroring how `html`
+   * nodes carry raw markup. The HAST handler strips the delimiters when it
+   * renders comments in dev mode.
+   */
+  value: string;
+  data?: HastDirectiveData;
+}
+
 declare module "mdast" {
   interface RootContentMap {
     obsidianCallout: ObsidianCallout;
+    comment: ObsidianComment;
   }
   interface PhrasingContentMap {
     obsidianWikiLink: ObsidianWikiLink;
     obsidianEmbed: ObsidianEmbed;
+    comment: ObsidianComment;
   }
 }

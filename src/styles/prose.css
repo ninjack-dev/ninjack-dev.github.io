@@ -129,6 +129,13 @@
   padding: 0;
 }
 
+/* Obsidian comments: `%%…%%` spans become darkened annotations in dev mode
+   only (the rehype handler strips them from the output in production). */
+.prose .obsidian-comment {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
 /* Obsidian callouts.
    Outer element is <div class="callout"> (or <details> when foldable)
    with a [data-callout] type. Color tokens are selected case-insensitively. */
