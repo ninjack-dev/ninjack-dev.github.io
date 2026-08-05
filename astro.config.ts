@@ -42,6 +42,7 @@ export default defineConfig({
       smartypants: {
         ellipses: false,
         backticks: false,
+        dashes: "inverted",
       },
     }),
   },
