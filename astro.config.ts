@@ -3,6 +3,7 @@ import { unified } from "@astrojs/markdown-remark";
 import rehypeMathjax from "rehype-mathjax";
 import remarkMath from "remark-math";
 import remarkToc from "remark-toc";
+import embeds from "./src/integrations/embeds.ts";
 import pagefind from "./src/integrations/pagefind.ts";
 
 export default defineConfig({
@@ -10,7 +11,7 @@ export default defineConfig({
   image: {
     service: passthroughImageService(),
   },
-  integrations: [pagefind()],
+  integrations: [pagefind(), embeds()],
   prefetch: true,
   fonts: [
     {

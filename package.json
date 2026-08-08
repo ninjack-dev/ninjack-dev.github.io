@@ -15,6 +15,13 @@
     "postinstall": "node scripts/download-pagefind-types.ts"
   },
   "dependencies": {
+    "@astro-community/astro-embed-bluesky": "^0.2.3",
+    "@astro-community/astro-embed-gist": "^0.1.0",
+    "@astro-community/astro-embed-link-preview": "^0.3.1",
+    "@astro-community/astro-embed-mastodon": "^0.1.1",
+    "@astro-community/astro-embed-twitter": "^0.5.11",
+    "@astro-community/astro-embed-vimeo": "^0.3.12",
+    "@astro-community/astro-embed-youtube": "^0.5.10",
     "@astrojs/check": "^0.9.9",
     "@astrojs/markdown-remark": "^7.2.1",
     "@astrojs/rss": "^4.0.19",
@@ -41,6 +48,7 @@
     "vfile": "^6.0.3"
   },
   "devDependencies": {
+    "@types/unist": "^3.0.3",
     "oxfmt": "^0.54.0",
     "oxlint": "^1.69.0",
     "oxlint-tsgolint": "^0.23.0"
