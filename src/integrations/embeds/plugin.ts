@@ -1,4 +1,3 @@
-import { appendFileSync } from "node:fs";
 import { experimental_AstroContainer as AstroContainer } from "astro/container";
 import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Element, Root } from "hast";
@@ -115,12 +114,6 @@ function matchEmbed(
 export function embedPlugin() {
   return async function transformer(tree: Root) {
     const embeds = globalThis.astroEmbeds;
-    if (process.env.EMBED_DEBUG) {
-      appendFileSync(
-        "/tmp/embed-plugin.txt",
-        `${new Date().toISOString()} transformer run; registry=${embeds === undefined ? "ABSENT" : `present(${embeds.length})`}\n`,
-      );
-    }
     if (embeds === undefined) return;
 
     const targets: Array<{
@@ -134,9 +127,6 @@ export function embedPlugin() {
       const url = loneLinkUrl(node);
       if (url === undefined) return;
       const match = matchEmbed(embeds, url);
-      if (process.env.EMBED_DEBUG) {
-        appendFileSync("/tmp/embed-plugin.txt", `url=${url} match=${match ? "YES" : "no"}\n`);
-      }
       if (match === undefined || parent === undefined || index === undefined) return;
       targets.push({ index, parent, component: match.embed.component, id: match.id });
     });
@@ -151,9 +141,6 @@ export function embedPlugin() {
             props: { id },
           });
           const cleaned = stripLocalAssets(html);
-          if (process.env.EMBED_DEBUG) {
-            appendFileSync("/tmp/embed-raw.txt", `===== ${id} =====\n${html}\n\n`);
-          }
           if (cleaned.trim().length === 0) return;
           // `raw` nodes are parsed into the tree by the pipeline's rehype-raw.
           const raw: Raw = { type: "raw", value: cleaned };

@@ -1,5 +1,5 @@
 import type { AstroIntegration } from "astro";
-import { appendFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -179,10 +179,6 @@ export default function embeds(): AstroIntegration {
                   {
                     name: "embeds:registry",
                     transform(code: string, id: string) {
-                      // Dev re-imports may carry cache-busting queries.
-                      if (process.env.EMBED_DEBUG) {
-                        appendFileSync("/tmp/embed-transform.txt", id + "\n");
-                      }
                       if (id.split("?")[0] !== contentConfigPath) return;
                       return `import ${JSON.stringify(EMBED_REGISTRY)};\n${code}`;
                     },
