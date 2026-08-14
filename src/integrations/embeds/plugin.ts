@@ -3,7 +3,7 @@ import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Element, Root } from "hast";
 import type { Node, Parent } from "unist";
 import { visit } from "unist-util-visit";
-import type { EmbedRegistration } from "./components.ts";
+import { getEmbedRegistry, type EmbedRegistration } from "./registry.ts";
 
 /**
  * Container shared across all renders in this process. Created lazily on
@@ -113,7 +113,7 @@ function matchEmbed(
  */
 export function embedPlugin() {
   return async function transformer(tree: Root) {
-    const embeds = globalThis.astroEmbeds;
+    const embeds = getEmbedRegistry();
     if (embeds === undefined) return;
 
     const targets: Array<{
