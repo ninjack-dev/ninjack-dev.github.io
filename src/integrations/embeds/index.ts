@@ -1,34 +1,10 @@
 import type { AstroIntegration } from "astro";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { embedPlugin } from "./plugin.ts";
-
-/**
- * Candidate locations of the build-time content config, in the same search
- * order Astro itself uses (`searchConfig`/`searchLegacyConfig` in
- * astro/src/content/utils).
- */
-const CONTENT_CONFIG_NAMES = [
-  "content.config.mjs",
-  "content.config.js",
-  "content.config.mts",
-  "content.config.ts",
-  "content/config.ts",
-  "content/config.js",
-  "content/config.mjs",
-  "content/config.mts",
-] as const;
-
-/** The embed registry must load through a Vite graph (`.astro` components need
- * Astro's transforms) and publish before the content layer renders markdown:
- * the loader renders entries at sync time and pages display that stored HTML,
- * so a request-time load (e.g. `page-ssr`) is too late. The only module
- * guaranteed to load through a Vite graph before sync in both dev and build
- * is the content config itself (the types generator imports it), so its
- * transform prepends an import of the registry module. */
-const EMBED_REGISTRY = fileURLToPath(new URL("./components.ts", import.meta.url));
+import { embedVitePlugin, findContentConfig } from "./vite.ts";
 
 /**
  * Package root for a direct dependency, resolved at config time.
@@ -156,9 +132,7 @@ export default function embeds(): AstroIntegration {
         }
 
         const srcDir = fileURLToPath(config.srcDir);
-        const contentConfigPath = CONTENT_CONFIG_NAMES.map((name) => resolve(srcDir, name)).find(
-          (path) => existsSync(path),
-        );
+        const contentConfigPath = findContentConfig(srcDir);
         if (!contentConfigPath) {
           logger.warn("No content config file found; embeds will not load.");
         }
@@ -174,17 +148,7 @@ export default function embeds(): AstroIntegration {
             },
           },
           vite: {
-            plugins: contentConfigPath
-              ? [
-                  {
-                    name: "embeds:registry",
-                    transform(code: string, id: string) {
-                      if (id.split("?")[0] !== contentConfigPath) return;
-                      return `import ${JSON.stringify(EMBED_REGISTRY)};\n${code}`;
-                    },
-                  },
-                ]
-              : [],
+            plugins: [embedVitePlugin({ contentConfigPath })],
           },
         });
       },
