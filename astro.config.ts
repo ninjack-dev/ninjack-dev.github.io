@@ -3,7 +3,7 @@ import { unified } from "@astrojs/markdown-remark";
 import rehypeMathjax from "rehype-mathjax";
 import remarkMath from "remark-math";
 import remarkToc from "remark-toc";
-import embeds from "./src/integrations/embeds.ts";
+import embeds from "./src/integrations/embeds/index.ts";
 import pagefind from "./src/integrations/pagefind.ts";
 
 export default defineConfig({

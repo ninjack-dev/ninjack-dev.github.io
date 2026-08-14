@@ -4,7 +4,7 @@ import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Element, Root } from "hast";
 import type { Node, Parent } from "unist";
 import { visit } from "unist-util-visit";
-import type { EmbedRegistration } from "./embed-components.ts";
+import type { EmbedRegistration } from "./components.ts";
 
 /**
  * Container shared across all renders in this process. Created lazily on
@@ -105,7 +105,8 @@ function matchEmbed(
  *
  * The embed components cannot be imported here: the markdown processor runs
  * in a plain-Node context, while `.astro` modules need Astro's Vite pipeline.
- * They are loaded and registered by `src/lib/embed-components.ts` through the
+ * They are loaded and registered by `src/integrations/embeds/components.ts`
+ * through the
  * dev/build Vite graphs (the embeds integration injects it into the content
  * config module, which loads before the content layer renders markdown); this
  * plugin reads that registry. When the registry is absent (no content sync

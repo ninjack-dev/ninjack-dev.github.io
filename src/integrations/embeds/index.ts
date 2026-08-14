@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { embedPlugin } from "../lib/embed-plugin.ts";
+import { embedPlugin } from "./plugin.ts";
 
 /**
  * Candidate locations of the build-time content config, in the same search
@@ -28,7 +28,7 @@ const CONTENT_CONFIG_NAMES = [
  * guaranteed to load through a Vite graph before sync in both dev and build
  * is the content config itself (the types generator imports it), so its
  * transform prepends an import of the registry module. */
-const EMBED_REGISTRY = fileURLToPath(new URL("../lib/embed-components.ts", import.meta.url));
+const EMBED_REGISTRY = fileURLToPath(new URL("./components.ts", import.meta.url));
 
 /**
  * Package root for a direct dependency, resolved at config time.
