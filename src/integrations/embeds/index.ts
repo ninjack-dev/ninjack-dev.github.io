@@ -1,7 +1,7 @@
 import type { AstroIntegration } from "astro";
 import { fileURLToPath } from "node:url";
 import { embedPlugin } from "./plugin.ts";
-import { embedVitePlugin, findContentConfig } from "./vite.ts";
+import { embedVitePlugin, findContentConfig, primeClientCssCaches } from "./vite.ts";
 
 export default function embeds(): AstroIntegration {
   return {
@@ -36,19 +36,7 @@ export default function embeds(): AstroIntegration {
           },
         });
       },
-      "astro:server:setup": ({ server }) => {
-        // Vite primes the CSS module caches in the client environment's
-        // `buildStart` hooks during its own `initServer`, which only runs once
-        // the dev server starts listening. Astro imports the content config
-        // (and therefore the styled embed components) before that, so the
-        // first CSS transform crashes `vite:css-post` with an empty cache.
-        // Make the same call Vite makes eagerly; `buildStart` is idempotent.
-        // Verified: removing this hook makes dev fail to load the content
-        // config (the first CSS transform crashes `vite:css-post` with the
-        // empty cache), so it is required as long as styled components are
-        // imported through the content config.
-        return server.environments.client.pluginContainer.buildStart();
-      },
+      "astro:server:setup": ({ server }) => primeClientCssCaches(server),
     },
   };
 }

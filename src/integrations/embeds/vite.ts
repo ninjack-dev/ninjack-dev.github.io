@@ -1,7 +1,28 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Plugin } from "vite";
+import type { Plugin, ViteDevServer } from "vite";
+
+/**
+ * Vite primes the CSS module caches in the client environment's `buildStart`
+ * hooks during its own `initServer`, which only runs once the dev server
+ * starts listening. Astro imports the content config (and therefore the
+ * styled embed components) before that, so the first CSS transform crashes
+ * `vite:css-post` with an empty cache. The integration calls this eagerly in
+ * `astro:server:setup`, which runs before content sync; `buildStart` is
+ * idempotent.
+ *
+ * A plugin's own `buildStart` hook cannot replace this: it runs at listen
+ * time, after sync, so the caches prime too late, and the call is re-entrant
+ * (the container runs every plugin's `buildStart`, including the caller's).
+ * Verified: removing this hook makes dev fail to load the content config (the
+ * first CSS transform crashes `vite:css-post` with the empty cache), so it is
+ * required as long as styled components are imported through the content
+ * config.
+ */
+export function primeClientCssCaches(server: ViteDevServer) {
+  return server.environments.client.pluginContainer.buildStart();
+}
 
 /**
  * Candidate locations of the build-time content config, in the same search
@@ -20,9 +41,7 @@ const CONTENT_CONFIG_NAMES = [
 ] as const;
 
 export function findContentConfig(srcDir: string): string | undefined {
-  return CONTENT_CONFIG_NAMES.map((name) => resolve(srcDir, name)).find(
-    (path) => existsSync(path),
-  );
+  return CONTENT_CONFIG_NAMES.map((name) => resolve(srcDir, name)).find((path) => existsSync(path));
 }
 
 /**
@@ -113,9 +132,7 @@ const SCRIPTS_MODULE = `
 const VIRTUAL_STYLES = "\0virtual:embeds/styles";
 const VIRTUAL_SCRIPTS = "\0virtual:embeds/scripts";
 
-export function embedVitePlugin(options: {
-  contentConfigPath?: string;
-}): Plugin {
+export function embedVitePlugin(options: { contentConfigPath?: string }): Plugin {
   const { contentConfigPath } = options;
   return {
     name: "embeds:registry",
