@@ -44,6 +44,7 @@
     "remark-toc": "^9.0.0",
     "tinyglobby": "^0.2.15",
     "typescript": "^6.0.3",
+    "ultrahtml": "^1.7.0",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.3"
   },

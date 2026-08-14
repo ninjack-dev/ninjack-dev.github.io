@@ -3,6 +3,8 @@ import type { AstroComponentFactory } from "astro/runtime/server/index.js";
 import type { Element, Root } from "hast";
 import type { Node, Parent } from "unist";
 import { visit } from "unist-util-visit";
+import { DOCUMENT_NODE, ELEMENT_NODE, parse, renderSync, walkSync } from "ultrahtml";
+import type { DocumentNode, ElementNode } from "ultrahtml";
 import { getEmbedRegistry, type EmbedRegistration } from "./registry.ts";
 
 /**
@@ -47,13 +49,32 @@ interface Raw extends Node {
  * and styles are injected page-wide by the embeds integration instead. Strip
  * local `<script>` tags and local stylesheet `<link>`s, keeping the static
  * embed shell. Remote stylesheets (e.g. the gist's githubassets CSS) are kept.
+ *
+ * The HTML is parsed (rather than regex-stripped) so a script's body is
+ * consumed as raw text up to its real closing tag: a JS string containing
+ * `</script>` or a `<` inside a preformatted block cannot truncate or
+ * over-match the strip.
  */
 function stripLocalAssets(html: string): string {
-  return html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<link\b[^>]*rel=["']stylesheet["'][^>]*>/gi, (link) =>
-      /href=["']https?:\/\//i.test(link) ? link : "",
-    );
+  const doc = parse(html) as DocumentNode;
+  const removals: Array<{ parent: DocumentNode | ElementNode; index: number }> = [];
+  walkSync(doc, (node, parent, index) => {
+    if (parent === undefined || index === undefined) return;
+    if (parent.type !== ELEMENT_NODE && parent.type !== DOCUMENT_NODE) return;
+    if (node.type !== ELEMENT_NODE) return;
+    const isLocalStylesheet =
+      node.name === "link" &&
+      node.attributes.rel === "stylesheet" &&
+      !/^https?:\/\//i.test(node.attributes.href ?? "");
+    if (node.name === "script" || isLocalStylesheet) {
+      removals.push({ parent, index });
+    }
+  });
+  // Remove highest indices first so earlier indices stay valid within a parent.
+  for (const { parent, index } of removals.sort((a, b) => b.index - a.index)) {
+    parent.children.splice(index, 1);
+  }
+  return renderSync(doc);
 }
 
 /**
