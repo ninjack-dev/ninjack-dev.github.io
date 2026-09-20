@@ -37,6 +37,14 @@
       text-decoration: underline;
     }
 
+    .markdown-body a.struck {
+      text-decoration: line-through;
+    }
+
+    .markdown-body a.struck:hover {
+      text-decoration: line-through underline;
+    }
+
     .markdown-body ul {
       padding-left: 1.5em;
     }
@@ -48,13 +56,13 @@
 </head>
 <body>
   <div class="markdown-body">
-    <p>Hi there! You've stumbled across my website. As you can see, it's very work-in-progress; I'm probably still picking a Hugo theme. If you're curious, here's the stack I'm planning to use:</p>
+    <p>Hi there! You've stumbled across my website. As you can see, it's very work-in-progress; I'm overengineering it to hell and back, and the todo list for the end product keeps growing. If you're curious, here's the stack I'm planning to use:</p>
     <ul>
-      <li><a href="https://gohugo.io/">Hugo</a> for the site generation</li>
-      <li><a href="https://docs.github.com/en/pages">GitHub Pages</a> for hosting</li>
-      <li><a href="https://github.com/giscus/giscus">Giscus</a> for comments on blog posts.</li>
+      <li><a href="https://gohugo.io/" class="struck">Hugo</a> <a href="https://astro.build/">Astro</a> for the site generation</li>
+      <li><a href="https://docs.github.com/en/pages">GitHub Pages</a> for hosting (tentative, probably moving over to <a href="https://codeberg.page/">codeberg.page</a>)</li>
+      <li><a href="https://github.com/giscus/giscus" class="struck">Giscus</a> Cooking something up with <a href="https://atproto.com/">AT Proto</a> for comments on blog posts.</li>
     </ul>
-    <p>Check back soon!</p>
+    <p>Check back soon™</p>
   </div>
 </body>
 </html>
